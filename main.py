@@ -77,7 +77,7 @@ if not TOKEN:
         "service's Environment settings (or your shell before running "
         "locally) - the bot will not start without it."
     )
-BOT_USERNAME = "adwabingiobot"
+BOT_USERNAME = "hgftfyuyo8ybot"
 def _env_admin_ids():
     raw = os.environ.get("ADMIN_IDS", "7627811244,1119881250,2073850894")
     ids = [int(p.strip()) for p in raw.split(",") if p.strip().isdigit()]
