@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Adwa Bingo</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0d0d2b;--bg2:#1a1a3e;--bg3:#12122a;
+  --orange:#ff6b35;--green:#00c875;--blue:#4a9eff;
+  --purple:#9b59b6;--pink:#e91e8c;--yellow:#ffd700;
+  --text:#fff;--muted:rgba(255,255,255,0.5);
+}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
+.app{max-width:390px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:60px;}
+.screen{display:none;flex:1;flex-direction:column;}
+.screen.active{display:flex;}
+
+.stake-container{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:70px 24px 24px;text-align:center;position:relative;}
+.stake-logo{font-size:24px;font-weight:900;color:var(--orange);margin-bottom:4px;letter-spacing:1px;}
+.stake-sub{font-size:13px;color:var(--muted);margin-bottom:30px;}
+.stake-box{width:100%;max-width:280px;}
+.stake-title{font-size:16px;font-weight:800;color:var(--orange);margin-bottom:15px;letter-spacing:0.5px;}
+.stake-btn{width:100%;padding:16px;border:none;border-radius:14px;font-size:20px;font-weight:800;cursor:pointer;margin-bottom:14px;transition:transform 0.15s, box-shadow 0.15s;letter-spacing:0.5px;}
+.stake-btn:active{transform:scale(0.97);}
+.stake-btn.s10{background:var(--green);color:#000;box-shadow:0 4px 15px rgba(0,200,117,0.3);}
+.stake-btn.s20{background:var(--blue);color:#fff;box-shadow:0 4px 15px rgba(74,158,255,0.3);}
+.stake-rules-btn{position:absolute;top:18px;right:18px;background:transparent;border:1.5px solid var(--orange);color:var(--orange);padding:6px 12px;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;letter-spacing:0.5px;z-index:10;transition:all .2s;}
+.stake-rules-btn:active{transform:scale(0.95);background:var(--orange);color:#000;}
+
+/* --- MODIFIED: Top Profile replacing Gear --- */
+.stake-top-profile{position:absolute;top:18px;left:18px;display:flex;align-items:center;gap:8px;z-index:10;cursor:pointer;transition:all .2s;}
+.stake-top-profile:active{transform:scale(0.95);}
+.stake-top-avatar{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--orange);background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;overflow:hidden;position:relative;}
+.stake-top-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.stake-top-info{display:flex;flex-direction:column;}
+.stake-top-title{font-size:13px;font-weight:800;color:var(--orange);letter-spacing:0.5px;}
+.stake-top-username{font-size:11px;color:var(--text);font-weight:600;}
+
+.stake-profile-top{display:flex;flex-direction:column;align-items:center;margin-bottom:10px;margin-top:40px;}
+.stake-avatar-wrap{width:72px;height:72px;margin-bottom:6px;position:relative;}
+.stake-avatar-circle{width:72px;height:72px;border-radius:50%;border:2.5px solid var(--orange);object-fit:cover;}
+.stake-avatar-letter{background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;width:72px;height:72px;border-radius:50%;border:2.5px solid var(--orange);}
+.stake-username-display{font-size:14px;font-weight:700;color:var(--text);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* Rules Screen Styles */
+.rules-screen{position:fixed;inset:0;background:var(--bg);z-index:500;display:none;flex-direction:column;max-width:390px;margin:0 auto;}
+.rules-screen.active{display:flex;}
+.rules-header{background:var(--bg2);padding:10px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.07);}
+.rules-back{background:transparent;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:0 4px;line-height:1;}
+.rules-header-title{font-size:16px;font-weight:800;flex:1;letter-spacing:0.5px;}
+.lang-switch{display:flex;border-radius:6px;overflow:hidden;border:1px solid var(--orange);}
+.lang-btn{background:transparent;border:none;color:var(--orange);padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
+.lang-btn.active{background:var(--orange);color:#000;}
+.rules-tabs{display:flex;background:var(--bg2);flex-shrink:0;border-bottom:2px solid rgba(255,255,255,0.05);}
+.rules-tab{flex:1;padding:10px;text-align:center;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;margin-bottom:-2px;}
+.rules-tab.active{color:var(--orange);border-bottom-color:var(--orange);}
+.rules-body{flex:1;overflow-y:auto;padding:16px;background:var(--bg);}
+.rules-body h1{font-size:18px;font-weight:900;color:var(--yellow);text-align:center;margin-bottom:4px;}
+.rules-body h1.sub{font-size:14px;color:var(--orange);margin-bottom:12px;}
+.rules-body h2{font-size:15px;font-weight:800;color:var(--yellow);margin:18px 0 8px;display:flex;align-items:center;gap:8px;}
+.rules-body h3{font-size:13px;font-weight:700;color:var(--orange);margin:12px 0 4px;}
+.rules-body p{font-size:12px;color:var(--text);line-height:1.6;margin-bottom:8px;}
+.rule-num{background:var(--blue);color:#fff;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:800;display:inline-block;margin-right:4px;}
+.rules-body ul{list-style:none;padding-left:4px;margin-bottom:8px;}
+.rules-body li{position:relative;padding-left:16px;margin-bottom:4px;font-size:12px;color:var(--text);line-height:1.5;}
+.rules-body li::before{content:'•';position:absolute;left:0;color:var(--orange);font-weight:bold;font-size:14px;}
+.rules-support{background:var(--bg2);border-radius:10px;padding:12px;margin-bottom:16px;text-align:center;border:1px solid rgba(255,255,255,0.07);}
+.rules-support a{color:var(--blue);text-decoration:none;font-weight:700;}
+.rules-cmd{display:flex;gap:8px;margin-bottom:6px;align-items:center;}
+.rules-cmd code{background:var(--bg3);color:var(--yellow);padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;font-family:monospace;white-space:nowrap;}
+.rules-cmd span{font-size:11px;color:var(--text);line-height:1.3;}
+.pattern-grid{display:inline-grid;grid-template-columns:repeat(5,1fr);gap:2px;margin:4px 0 16px;vertical-align:middle;background:var(--bg2);padding:4px;border-radius:6px;}
+.pattern-cell{width:18px;height:18px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;}
+.p-h{background:var(--bg3);color:var(--muted);font-size:8px;}
+.p-h.B{background:var(--blue);color:#fff;} .p-h.I{background:var(--purple);color:#fff;} .p-h.N{background:var(--pink);color:#fff;} .p-h.G{background:var(--yellow);color:#000;} .p-h.O{background:var(--orange);color:#000;}
+.p-g{background:var(--green);border-radius:3px;}
+.p-x{background:var(--purple);border-radius:3px;}
+.p-e{background:var(--bg3);border-radius:3px;}
+.pattern-label{font-size:12px;font-weight:700;color:var(--blue);margin-top:12px 0 4px;display:block;}
+
+.topbar{background:var(--bg2);padding:8px 6px;display:flex;gap:4px;flex-shrink:0;}
+.stat-box{flex:1;background:var(--bg3);border-radius:8px;padding:5px 4px;text-align:center;}
+.stat-label{font-size:8px;font-weight:800;color:var(--orange);letter-spacing:.5px;text-transform:uppercase;text-shadow:0 0 8px rgba(255,107,53,0.5);}
+.stat-val{font-size:15px;font-weight:700;line-height:1.2;color:#fff;}
+.stat-val.green{color:var(--green);}
+.stat-val.yellow{color:var(--yellow);}
+.stat-val.orange{color:var(--orange);}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:390px;background:var(--bg2);border-top:1px solid rgba(255,255,255,0.1);display:flex;z-index:100;}
+.nav-btn{flex:1;padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:10px;font-weight:600;transition:all .2s;}
+.nav-btn.active{color:var(--orange);}
+.nav-btn .nav-icon{font-size:20px;line-height:1;}
+.select-info{background:var(--bg2);text-align:center;padding:5px 12px;font-size:11px;font-weight:700;color:var(--blue);border-bottom:1px solid rgba(255,255,255,0.07);letter-spacing:0.3px;text-shadow:0 0 6px rgba(74,158,255,0.4);}
+.select-info span{color:var(--yellow);font-weight:800;}
+.game-id-bar{background:var(--bg3);text-align:center;padding:2px 3px;font-size:9px;font-weight:800;color:var(--yellow);letter-spacing:0.5px;text-shadow:0 0 8px rgba(255,215,0,0.4);}
+.game-id-bar span{color:var(--yellow);font-weight:700;}
+.cards-scroll{flex:1;overflow-y:auto;padding:5px;background:radial-gradient(ellipse at 50% 30%,rgba(74,158,255,0.07) 0%,rgba(155,89,182,0.05) 50%,transparent 80%);}
+.cards-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;}
+.card-cell{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;cursor:pointer;background:var(--bg2);color:var(--text);border:1px solid rgba(255,107,53,0.4);transition:all .15s;user-select:none;}
+.card-cell:active{transform:scale(0.93);}
+.card-cell.selected{background:var(--green);color:#000;border-color:var(--green);box-shadow:0 0 8px rgba(0,200,117,0.6);transform:scale(1.05);}
+.card-cell.disabled{opacity:0.3;cursor:not-allowed;}
+.card-cell.taken{background:#e74c3c;color:#fff;border-color:#e74c3c;cursor:not-allowed;font-weight:900;}
+.mini-cards{position:fixed;left:6px;bottom:64px;display:flex;gap:6px;z-index:60;pointer-events:none;}
+.mini-card{background:rgba(8,12,20,0.94);border:1px solid rgba(255,107,53,0.45);border-radius:8px;padding:5px;width:120px;box-shadow:0 0 10px rgba(0,0,0,0.6);}
+.mini-card-title{text-align:center;font-size:8px;font-weight:700;color:var(--muted);letter-spacing:1px;margin-bottom:4px;}
+.mini-card-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;}
+.mini-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:800;background:var(--bg3);color:var(--text);border-radius:2px;line-height:1;}
+.mini-cell.free{background:var(--purple);color:#fff;font-size:9px;}
+.mini-cell.marked{background:var(--green);color:#000;}
+.players-panel{background:var(--bg2);border:1px solid rgba(74,158,255,0.15);border-radius:8px;margin:6px 10px;padding:8px;max-height:140px;overflow-y:auto;}
+.players-panel h4{margin:0 0 6px;font-size:10px;font-weight:800;color:var(--blue);letter-spacing:1px;display:flex;justify-content:space-between;align-items:center;}
+.players-panel h4 .pcnt{color:var(--yellow);}
+.players-list{display:flex;flex-direction:column;gap:4px;}
+.player-row{display:flex;align-items:center;gap:6px;font-size:11px;padding:3px 6px;border-radius:6px;background:rgba(255,255,255,0.04);}
+.player-row .pdot{width:8px;height:8px;border-radius:50%;flex:none;}
+.player-row .pname{font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px;}
+.player-row .pcards{margin-left:auto;display:flex;gap:3px;flex-wrap:wrap;}
+.player-row .pcards .pcard{font-size:9px;font-weight:800;background:var(--green);color:#000;border-radius:4px;padding:1px 4px;}
+.player-empty{font-size:11px;color:var(--muted);text-align:center;padding:6px;}
+
+.bottom-bar{background:var(--bg2);padding:10px 12px;display:flex;align-items:center;gap:8px;border-top:1px solid rgba(255,255,255,0.07);flex-shrink:0;}
+.selected-info{flex:1;font-size:12px;color:var(--muted);}
+.selected-info strong{color:var(--text);font-size:14px;}
+.no-balance-msg{background:#e74c3c;color:#fff;text-align:center;padding:8px 12px;font-size:11px;font-weight:600;display:none;}
+
+.cancelled-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:24px;}
+.cancelled-overlay.show{display:flex;}
+.cancelled-overlay .c-icon{font-size:52px;}
+.cancelled-overlay .c-title{font-size:20px;font-weight:700;color:#e74c3c;}
+.cancelled-overlay .c-sub{font-size:13px;color:var(--muted);}
+.cancelled-overlay .c-btn{margin-top:12px;background:var(--orange);color:#000;border:none;border-radius:12px;padding:12px 32px;font-size:14px;font-weight:700;cursor:pointer;}
+.main{display:flex;flex:1;overflow:hidden;}
+.left-col{flex:1;padding:4px 2px 4px 4px;overflow:hidden;display:flex;flex-direction:column;}
+.bingo-header-row{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-bottom:2px;flex-shrink:0;}
+.bh{text-align:center;font-size:12px;font-weight:700;padding:4px 1px;border-radius:4px;color:#fff;}
+.bh.B{background:#4a9eff;}.bh.I{background:#9b59b6;}.bh.N{background:#e91e8c;}.bh.G{background:#ffd700;color:#000;}.bh.O{background:#ff6b35;color:#000;}
+.num-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;flex:1;}
+.num-cell{border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:var(--bg2);color:var(--text);border:1px solid rgba(255,107,53,0.35);transition:all .2s;}
+.num-cell.called{color:#000;border-color:transparent;}
+.num-cell.current{color:#000;border-color:transparent;transform:scale(1.06);}
+.right-col{width:165px;padding:4px 4px 4px 2px;display:flex;flex-direction:column;gap:4px;overflow:hidden;}
+.recent-balls{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end;}
+.rball{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;flex-direction:column;}
+.rball .rl{font-size:6px;opacity:.8;}
+.rball .rn{font-size:9px;}
+.current-box{background:var(--bg2);border-radius:8px;padding:5px 6px;text-align:center;}
+@keyframes readyPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+.current-label{font-size:9px;color:var(--muted);margin-bottom:2px;}
+.current-ball-big{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:54px;height:54px;border-radius:50%;font-weight:800;margin:auto;}
+.cbl{font-size:9px;opacity:.9;}
+.cbn{font-size:22px;line-height:1;}
+.controls-row{display:flex;gap:4px;align-items:center;background:var(--bg2);border-radius:8px;padding:4px 6px;}
+.ctrl-item{display:flex;align-items:center;gap:4px;flex:1;}
+.ctrl-lbl{font-size:9px;font-weight:600;}
+.ctrl-lbl.green{color:var(--green);}
+.ctrl-lbl.blue{color:var(--blue);}
+.toggle{width:32px;height:18px;border-radius:9px;background:rgba(255,255,255,0.2);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--green);}
+.toggle.blue-on{background:var(--blue);}
+.toggle.locked{pointer-events:none;opacity:0.85;}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s;}
+.toggle.on::after,.toggle.blue-on::after{left:16px;}
+.card-box{background:var(--bg2);border-radius:8px;padding:5px;}
+.card-id-lbl{text-align:center;font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:3px;}
+.card-hdr{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;margin-bottom:2px;}
+.ch{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;margin:auto;}
+.ch.B{background:#4a9eff;}.ch.I{background:#9b59b6;}.ch.N{background:#e91e8c;}.ch.G{background:#ffd700;color:#000;}.ch.O{background:#ff6b35;color:#000;}
+.card-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;}
+@keyframes cardGlow{0%{box-shadow:0 0 4px rgba(0,200,117,0.4);}50%{box-shadow:0 0 12px rgba(0,200,117,0.9),0 0 20px rgba(0,200,117,0.4);}100%{box-shadow:0 0 4px rgba(0,200,117,0.4);}}
+.cc{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;cursor:pointer;background:var(--bg3);color:var(--text);border:1px solid rgba(255,255,255,0.08);transition:all .2s;}
+.cc.marked{background:var(--green);color:#000;animation:cardGlow 1.2s ease-in-out;}
+.cc.free{background:var(--purple);color:#fff;}
+.cc.win-cell{background:var(--yellow);color:#000;box-shadow:0 0 4px var(--yellow);}
+.no-card{background:var(--bg2);border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center;opacity:.4;min-height:30px;}
+.winner-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:8px 12px 12px;text-align:center;background:var(--bg);overflow-y:auto;}
+.winner-trophy{font-size:44px;animation:bounce .5s ease infinite alternate;margin-top:4px;}
+@keyframes bounce{from{transform:translateY(0);}to{transform:translateY(-10px);}}
+.winner-title{font-size:20px;font-weight:900;color:var(--yellow);letter-spacing:3px;margin:5px 0 2px;}
+.winners-names-row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:6px 0 8px;width:100%;}
+.winner-name-chip{display:flex;align-items:center;gap:5px;background:rgba(255,215,0,0.12);border:1px solid rgba(255,215,0,0.35);border-radius:20px;padding:5px 12px;font-size:13px;font-weight:700;color:var(--yellow);}
+.winner-name-chip .wn-crown{font-size:14px;}
+.winner-name-chip .wn-card{font-size:10px;color:var(--muted);margin-left:2px;}
+.winner-card-box{background:var(--bg2);border:2px solid var(--yellow);border-radius:12px;padding:8px;margin:2px 0 8px;width:100%;max-width:240px;}
+.w-cards{display:flex;flex-direction:column;gap:8px;}
+.w-card-item{background:var(--bg3);border-radius:8px;padding:6px;border:1px solid rgba(255,255,255,0.08);}
+.w-card-name{font-size:11px;font-weight:800;color:var(--yellow);text-align:center;margin-bottom:4px;}
+.w-mini-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;}
+.wmc{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;background:var(--bg2);color:var(--text);border:1px solid rgba(255,255,255,0.08);}
+.wmc.wmmar{background:var(--green);color:#000;}
+.wmc.wmfree{background:var(--purple);color:#fff;}
+.wmc.wmlin{background:var(--yellow);color:#000;box-shadow:0 0 4px var(--yellow);}
+.winner-card-hdr{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:3px;}
+.wch{height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;margin:auto;width:22px;}
+.wch.B{background:#4a9eff;}.wch.I{background:#9b59b6;}.wch.N{background:#e91e8c;}.wch.G{background:#ffd700;color:#000;}.wch.O{background:#ff6b35;color:#000;}
+.winner-card-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;}
+.wcc{aspect-ratio:1;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--bg3);color:var(--text);border:1px solid rgba(255,255,255,0.08);}
+.wcc.wmarked{background:var(--green);color:#000;}
+.wcc.wfree{background:var(--purple);color:#fff;}
+.wcc.wwin{background:var(--yellow);color:#000;box-shadow:0 0 4px var(--yellow);}
+.prize-box{background:var(--bg2);border:2px solid var(--yellow);border-radius:14px;padding:10px 24px;margin:4px 0;}
+.prize-label{font-size:11px;color:var(--muted);margin-bottom:2px;}
+.prize-amount{font-size:28px;font-weight:900;color:var(--yellow);}
+.prize-each{font-size:11px;color:var(--muted);margin-top:2px;}
+.distribute-bar{width:100%;height:6px;background:rgba(255,255,255,0.1);border-radius:4px;margin:8px 0 4px;overflow:hidden;}
+.distribute-fill{height:100%;background:var(--yellow);border-radius:4px;width:100%;transition:width 1s linear;}
+.next-label{font-size:12px;color:var(--muted);}
+.next-count{font-size:20px;font-weight:700;color:var(--orange);}
+.page-scroll{flex:1;overflow-y:auto;padding:12px;}
+
+/* --- MODIFIED: Profile & Wallet Avatar/Username --- */
+.profile-header{background:var(--bg2);border-radius:14px;padding:16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;}
+.profile-avatar{width:54px;height:54px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0;overflow:hidden;position:relative;}
+.profile-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;top:0;left:0;}
+.profile-avatar .avatar-letter{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;background:var(--blue);border-radius:50%;}
+.profile-name{font-size:17px;font-weight:700;}
+.profile-id{font-size:11px;color:var(--muted);margin-top:2px;}
+.profile-username{font-size:11px;color:var(--blue);margin-top:2px;font-weight:600;}
+.profile-bal{font-size:13px;color:var(--green);margin-top:4px;font-weight:600;}
+
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.stat-card{background:var(--bg2);border-radius:10px;padding:12px;text-align:center;}
+.stat-card .sv{font-size:20px;font-weight:800;color:var(--yellow);}
+.stat-card .sv.green{color:var(--green);}
+.stat-card .sv.orange{color:var(--orange);}
+.stat-card .sv.muted{color:var(--muted);}
+.stat-card .sl{font-size:10px;color:var(--muted);margin-top:2px;}
+.section-title{font-size:13px;font-weight:700;color:var(--orange);margin-bottom:8px;letter-spacing:.5px;}
+.table-box{background:var(--bg2);border-radius:10px;overflow:hidden;margin-bottom:12px;}
+.table-head{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 10px;background:var(--bg3);}
+.table-head span{font-size:9px;font-weight:700;color:var(--orange);text-transform:uppercase;}
+.table-row{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;padding:8px 10px;border-top:1px solid rgba(255,255,255,0.05);}
+.table-row span{font-size:11px;color:var(--text);}
+.table-row span.green{color:var(--green);}
+.table-row span.orange{color:var(--orange);}
+.table-row span.red{color:#e74c3c;}
+.table-row span.muted{color:var(--muted);}
+.empty-row{padding:16px;text-align:center;font-size:12px;color:var(--muted);}
+.filter-tabs{display:flex;gap:6px;margin-bottom:10px;}
+.ftab{flex:1;padding:8px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.1);background:transparent;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;text-align:center;}
+.ftab.active{background:var(--orange);color:#000;border-color:var(--orange);}
+.filter-tabs2{display:flex;gap:4px;margin-bottom:10px;}
+.ftab2{flex:1;padding:6px 2px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.1);background:transparent;color:var(--muted);font-size:10px;font-weight:600;cursor:pointer;text-align:center;}
+.ftab2.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.rank-card{background:var(--bg2);border-radius:10px;overflow:hidden;margin-bottom:8px;}
+.rank-head{display:grid;grid-template-columns:40px 1fr 80px;padding:8px 12px;background:var(--bg3);}
+.rank-head span{font-size:9px;font-weight:700;color:var(--yellow);text-transform:uppercase;}
+.rank-row{display:grid;grid-template-columns:40px 1fr 80px;padding:10px 12px;border-top:1px solid rgba(255,255,255,0.05);align-items:center;}
+.rank-num{font-size:14px;font-weight:800;}
+.rank-num.gold{color:var(--yellow);}
+.rank-num.silver{color:#aaa;}
+.rank-num.bronze{color:#cd7f32;}
+.rank-name{font-size:13px;font-weight:600;}
+.rank-val{font-size:12px;font-weight:700;color:var(--green);text-align:right;}
+.my-rank-box{background:rgba(255,107,53,0.15);border:1px solid var(--orange);border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.my-rank-box .mr-label{font-size:11px;color:var(--muted);}
+.my-rank-box .mr-val{font-size:16px;font-weight:800;color:var(--orange);}
+.wallet-bal-box{background:var(--bg2);border-radius:14px;padding:16px;margin-bottom:12px;text-align:center;}
+.wallet-total-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.wallet-total{font-size:32px;font-weight:900;color:var(--green);margin:4px 0;}
+.wallet-sub-row{display:flex;justify-content:center;gap:16px;margin-top:6px;}
+.wallet-sub{font-size:12px;color:var(--muted);}
+.wallet-sub span{color:var(--text);font-weight:600;}
+.tx-table .table-head{grid-template-columns:1.5fr 1fr 1fr 1.5fr;}
+.tx-table .table-row{grid-template-columns:1.5fr 1fr 1fr 1.5fr;}
+
+.pattern-box{background:var(--bg2);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin:6px 0 16px;font-size:20px;line-height:1.4;white-space:pre-wrap;overflow-x:auto;font-family:sans-serif;}
+</style>
+</head>
+<body>
+<div class="app">
+  
+  <div class="screen" id="screen-stake">
+    <div class="stake-container">
+      <!-- MODIFIED: Replaced Gear Icon with Profile Pic + Title + Username -->
+      <div class="stake-top-profile" onclick="navTo('profile')">
+        <div class="stake-top-avatar" id="stake-top-avatar">
+          <img id="stake-top-avatar-img" src="" style="display:none;">
+          <span id="stake-top-avatar-letter">?</span>
+        </div>
+        <div class="stake-top-info">
+          <div class="stake-top-title">ADWA BINGO</div>
+          <div class="stake-top-username" id="stake-top-username"></div>
+        </div>
+      </div>
+      
+      <!-- Existing Rules Button Untouched -->
+      <button class="stake-rules-btn" onclick="openRules()">📜 RULES</button>
+      
+      <!-- Center Profile Section Untouched -->
+      <div class="stake-profile-top">
+        <div class="stake-avatar-wrap">
+          <img id="stake-avatar-img" src="" class="stake-avatar-circle" style="display:none;">
+          <div id="stake-avatar-letter" class="stake-avatar-letter">?</div>
+        </div>
+        <div id="stake-username" class="stake-username-display"></div>
+      </div>
+
+      <!-- Shifted Down Title & Buttons -->
+      <div class="stake-logo">🇪🇹 ADWA BINGO</div>
+      <div class="stake-sub">Choose Your Stake & Win Big!</div>
+      <div class="stake-box">
+        <div class="stake-title">Choose Your Stake</div>
+        <button class="stake-btn s10" onclick="selectStake(10)">Play 10 Birr</button>
+        <button class="stake-btn s20" onclick="selectStake(20)">Play 20 Birr</button>
+      </div>
+      <div style="margin-top:25px; text-align:center; font-size:13px; color:var(--muted); line-height:1.5;">
+        Thanks for choosing Adwa Bingo! 🇪🇹🍀<br>
+        አድዋ ቢንጎን ስለመረጡ እናመሰግናለን!
+      </div>
+    </div>
+  </div>
+
+  <div class="rules-screen" id="rules-screen">
+    <div class="rules-header">
+      <button class="rules-back" onclick="closeRules()">⬅️</button>
+      <div class="rules-header-title">Rules & Info</div>
+      <div class="lang-switch">
+        <button class="lang-btn active" id="lang-en" onclick="setRulesLang('en')">EN</button>
+        <button class="lang-btn" id="lang-am" onclick="setRulesLang('am')">አማ</button>
+      </div>
+    </div>
+    <div class="rules-tabs">
+      <div class="rules-tab active" id="tab-terms" onclick="setRulesTab('terms')">Terms & Conditions</div>
+      <div class="rules-tab" id="tab-info" onclick="setRulesTab('info')">Info</div>
+    </div>
+    <div class="rules-body" id="rules-body"></div>
+  </div>
+
+  <div class="screen" id="screen-home">
+    <div class="topbar" id="home-topbar">
+      <div class="stat-box"><div class="stat-label">MAIN</div><div class="stat-val green" id="s-main">—</div></div>
+      <div class="stat-box"><div class="stat-label">PLAY</div><div class="stat-val green" id="s-play">—</div></div>
+      <div class="stat-box"><div class="stat-label">BET(መደብ)</div><div class="stat-val orange" id="s-bet-stake">10</div></div>
+      <div class="stat-box"><div class="stat-label">WIN(ደራሽ)</div><div class="stat-val green" id="s-win-sel">0</div></div>
+      <div class="stat-box"><div class="stat-label">TIME LEFT</div><div class="stat-val yellow" id="s-time">35s</div></div>
+    </div>
+    <div id="select-area">
+      <div style="padding:5px 12px; display:flex; justify-content:flex-start;">
+        <button onclick="backToStake()" style="background:transparent; border:1px solid var(--orange); color:var(--orange); padding:6px 12px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer; transition: all .2s; letter-spacing:0.3px; text-shadow:0 0 6px rgba(255,107,53,0.4);">⬅️ Back/Change stake</button>
+      </div>
+      <div class="no-balance-msg" id="no-balance-msg">⚠️ Insufficient balance! በቂ ሂሳብ የለም!</div>
+      <div class="game-id-bar">Game ID: <span id="game-id-label">—</span></div>
+      <div class="select-info">YOU CAN SELECT UP TO <span>2 CARDS</span><br>እስከ 2 ካርቴላ መምረጥ ይችላሉ</div>
+      <div class="cards-scroll"><div class="cards-grid" id="cards-grid"></div></div>
+      <div class="bottom-bar">
+        <div class="selected-info">Selected: <strong id="sel-count">0</strong> / 2</div>
+      </div>
+      <div class="mini-cards" id="mini-cards"></div>
+    </div>
+    <div id="wait-area" style="display:none;flex:1;flex-direction:column;">
+      <div class="topbar">
+        <div class="stat-box"><div class="stat-label">GAME ID</div><div class="stat-val yellow" id="w-game-id">—</div></div>
+        <div class="stat-box"><div class="stat-label">WIN(ደራሽ)</div><div class="stat-val green" id="w-win-top">0</div></div>
+        <div class="stat-box"><div class="stat-label">PLAYERS(ተጫዋቾች)</div><div class="stat-val green" id="w-players-top">0</div></div>
+        <div class="stat-box"><div class="stat-label">BET(መደብ)</div><div class="stat-val orange" id="w-bet-stake">10</div></div>
+        <div class="stat-box"><div class="stat-label">CALL(የተጠሩ)</div><div class="stat-val yellow" id="w-call-top">0</div></div>
+      </div>
+      <div class="main" style="flex:1;">
+        <div class="left-col">
+          <div class="bingo-header-row"><div class="bh B">B</div><div class="bh I">I</div><div class="bh N">N</div><div class="bh G">G</div><div class="bh O">O</div></div>
+          <div class="num-grid" id="wait-num-grid"></div>
+        </div>
+        <div class="right-col">
+          <div class="recent-balls" id="wait-recent-balls"></div>
+          <div class="current-box">
+            <div class="current-label">Current</div>
+            <div class="current-ball-big" id="wait-current-big" style="background:#333;color:#fff;margin:auto;"><span class="cbl" id="wait-cb-letter">-</span><span class="cbn" id="wait-cb-num">-</span></div>
+          </div>
+          <div class="controls-row">
+            <div class="ctrl-item"><span class="ctrl-lbl green">Auto</span><div class="toggle on locked"></div></div>
+            <div class="ctrl-item"><span class="ctrl-lbl blue">🔊</span><div class="toggle" id="wait-sound-toggle" onclick="toggleSoundWait()"></div></div>
+          </div>
+          <div style="flex:1;background:var(--bg2);border-radius:8px;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:13px;font-weight:700;color:var(--blue);line-height:1.5;margin-bottom:8px;">Please wait for this game to be completed</div>
+            <div style="font-size:12px;color:var(--green);line-height:1.6;">እባክዎ ይህ ጨዋታ እስኪጠናቀቅ ይጠብቁ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="screen" id="screen-game">
+    <div class="topbar">
+      <div class="stat-box"><div class="stat-label">GAME ID</div><div class="stat-val yellow" id="s-game-id">—</div></div>
+      <div class="stat-box"><div class="stat-label">WIN(ደራሽ)</div><div class="stat-val green" id="s-win-game">0</div></div>
+      <div class="stat-box"><div class="stat-label">PLAYERS(ተጫዋቾች)</div><div class="stat-val green" id="s-players">0</div></div>
+      <div class="stat-box"><div class="stat-label">BET(መደብ)</div><div class="stat-val orange" id="g-bet-stake">10</div></div>
+      <div class="stat-box"><div class="stat-label">CALL(የተጠሩ)</div><div class="stat-val yellow" id="s-call">0</div></div>
+    </div>
+    <div class="main">
+      <div class="left-col">
+        <div class="bingo-header-row"><div class="bh B">B</div><div class="bh I">I</div><div class="bh N">N</div><div class="bh G">G</div><div class="bh O">O</div></div>
+        <div class="num-grid" id="num-grid"></div>
+      </div>
+      <div class="right-col">
+        <div class="recent-balls" id="recent-balls"></div>
+        <div class="current-box">
+          <div class="current-label" id="game-current-label">Current</div>
+          <div class="current-ball-big" id="current-big" style="background:#333;color:#fff;margin:auto;"><span class="cbl" id="cb-letter">-</span><span class="cbn" id="cb-num">-</span></div>
+        </div>
+        
+        <div class="controls-row">
+          <div class="ctrl-item"><span class="ctrl-lbl green">Auto</span><div class="toggle on locked" id="auto-toggle"></div></div>
+          <div class="ctrl-item"><span class="ctrl-lbl blue">🔊</span><div class="toggle" id="sound-toggle" onclick="toggleSound()"></div></div>
+        </div>
+        <div class="card-box" id="card1-box">
+          <div class="card-id-lbl">CARD: <span id="card1-id">—</span></div>
+          <div class="card-hdr" id="card1-header"></div>
+          <div class="card-grid" id="card1-grid"></div>
+        </div>
+        <div class="card-box" id="card2-box" style="display:none;">
+          <div class="card-id-lbl">CARD: <span id="card2-id">—</span></div>
+          <div class="card-hdr" id="card2-header"></div>
+          <div class="card-grid" id="card2-grid"></div>
+        </div>
+        <div class="no-card" id="no-card-slot"><span style="font-size:11px;color:var(--muted);letter-spacing:1px;">NO CARD</span></div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="screen" id="screen-winner">
+    <div class="winner-screen">
+      <div class="winner-trophy">🏆</div>
+      <div class="winner-title" id="winner-title-text">BINGO! WINNER!</div>
+      <div class="winners-names-row" id="winners-names-row"></div>
+      <div class="winner-card-box" id="w-card-box"><div class="w-cards" id="w-cards"></div></div>
+      <div class="prize-box"><div class="prize-label">Prize Distributed</div><div class="prize-amount" id="w-prize">0</div><div class="prize-each" id="w-prize-each"></div></div>
+      <div class="distribute-bar"><div class="distribute-fill" id="dist-fill"></div></div>
+      <div class="next-label">Next round starts in</div>
+      <div class="next-count" id="next-count">10</div>
+    </div>
+  </div>
+
+  <div class="screen" id="screen-profile">
+    <div class="topbar">
+      <div class="stat-box"><div class="stat-label">MAIN</div><div class="stat-val green" id="p-main">—</div></div>
+      <div class="stat-box"><div class="stat-label">PLAY</div><div class="stat-val green" id="p-play">—</div></div>
+      <div class="stat-box"><div class="stat-label">TOTAL</div><div class="stat-val yellow" id="p-total">—</div></div>
+    </div>
+    <div class="page-scroll">
+      <!-- MODIFIED: Added img and username fields -->
+      <div class="profile-header">
+        <div class="profile-avatar" id="p-avatar">
+          <img id="p-avatar-img" src="" style="display:none;">
+          <span class="avatar-letter" id="p-avatar-letter">?</span>
+        </div>
+        <div>
+          <div class="profile-name" id="p-name">—</div>
+          <div id="p-vip-badge" style="display:none; color:#ffd600; font-size:12px; font-weight:700; margin-top:2px;">⭐ VIP Member</div>
+          <div class="profile-id" id="p-id">ID: —</div>
+          <div class="profile-username" id="p-username" style="display:none;"></div>
+          <div class="profile-bal" id="p-bal">💰 — Br</div>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="sv green" id="p-games-played">0</div><div class="sl">Games Played</div></div>
+        <div class="stat-card"><div class="sv yellow" id="p-games-won">0</div><div class="sl">Games Won</div></div>
+        <div class="stat-card"><div class="sv green" id="p-total-won">0 Br</div><div class="sl">Br Total Won</div></div>
+        <div class="stat-card"><div class="sv orange" id="p-invited">0</div><div class="sl">Users Invited</div></div>
+      </div>
+      <div class="section-title">Game History</div>
+      <div class="table-box"><div class="table-head"><span>GAME ID</span><span>ENTRY</span><span>STATUS</span><span>RESULT</span></div><div id="p-history-rows"><div class="empty-row">No games yet</div></div></div>
+    </div>
+  </div>
+  
+  <div class="screen" id="screen-winners">
+    <div class="topbar">
+      <div class="stat-box"><div class="stat-label">MAIN</div><div class="stat-val green" id="tw-main">—</div></div>
+      <div class="stat-box"><div class="stat-label">PLAY</div><div class="stat-val green" id="tw-play">—</div></div>
+      <div class="stat-box"><div class="stat-label">TOTAL</div><div class="stat-val yellow" id="tw-total">—</div></div>
+    </div>
+    <div class="page-scroll">
+      <div class="filter-tabs"><button class="ftab active" id="tab-week" onclick="setWeek('week')">This Week</button><button class="ftab" id="tab-month" onclick="setWeek('month')">This Month</button></div>
+      <div class="filter-tabs2"><button class="ftab2 active" id="tab-deposit" onclick="setCategory('deposit')">💰 Most Deposit</button><button class="ftab2" id="tab-invite" onclick="setCategory('invite')">👥 Most Invitation</button><button class="ftab2" id="tab-games" onclick="setCategory('games')">🎮 Most Games</button></div>
+      <div class="my-rank-box"><div><div class="mr-label">Your Rank</div><div class="mr-val" id="my-rank">#—</div></div><div><div class="mr-label" id="my-rank-val-label">Value</div><div class="mr-val" id="my-rank-val">—</div></div></div>
+      <div class="rank-card"><div class="rank-head"><span>#</span><span>NAME</span><span style="text-align:right;">TIMES</span></div><div id="rank-rows"><div class="empty-row">Loading...</div></div></div>
+    </div>
+  </div>
+  
+  <div class="screen" id="screen-wallet">
+    <div class="topbar">
+      <div class="stat-box"><div class="stat-label">MAIN</div><div class="stat-val green" id="w-main">—</div></div>
+      <div class="stat-box"><div class="stat-label">PLAY</div><div class="stat-val green" id="w-play">—</div></div>
+      <div class="stat-box"><div class="stat-label">TOTAL</div><div class="stat-val yellow" id="w-total">—</div></div>
+    </div>
+    <div class="page-scroll">
+      <!-- MODIFIED: Added img and username fields -->
+      <div class="profile-header" style="margin-bottom:12px;">
+        <div class="profile-avatar" id="wl-avatar">
+          <img id="wl-avatar-img" src="" style="display:none;">
+          <span class="avatar-letter" id="wl-avatar-letter">?</span>
+        </div>
+        <div>
+          <div class="profile-name" id="wl-name">—</div>
+          <div class="profile-id" id="wl-id">ID: —</div>
+          <div class="profile-username" id="wl-username" style="display:none;"></div>
+          <div class="profile-bal" id="wl-bal">💰 — Br</div>
+        </div>
+      </div>
+      <div class="wallet-bal-box"><div class="wallet-total-label">AVAILABLE BALANCE</div><div class="wallet-total" id="wl-total-big">— Br</div><div class="wallet-sub-row"><div class="wallet-sub">Withdrawable: <span id="wl-main-sub">—</span> Br</div><div class="wallet-sub">Play: <span id="wl-play-sub">—</span> Br</div></div></div>
+      <div class="section-title">Transaction History</div>
+      <div class="table-box tx-table"><div class="table-head"><span>TYPE</span><span>AMOUNT</span><span>STATUS</span><span>DATE</span></div><div id="wl-tx-rows"><div class="empty-row">No transactions yet</div></div></div>
+    </div>
+  </div>
+  
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="nav-home" onclick="navTo('home')"><span class="nav-icon">🏠</span>HOME</button>
+    <button class="nav-btn" id="nav-profile" onclick="navTo('profile')"><span class="nav-icon">👤</span>PROFILE</button>
+    <button class="nav-btn" id="nav-winners" onclick="navTo('winners')"><span class="nav-icon">🏆</span>TOP WINNERS</button>
+    <button class="nav-btn" id="nav-wallet" onclick="navTo('wallet')"><span class="nav-icon">💳</span>WALLET</button>
+  </nav>
+</div>
+
+<div class="cancelled-overlay" id="cancelled-overlay"><div class="c-icon">❌</div><div class="c-title">Game Cancelled</div><div class="c-sub">ጨዋታው ተሰርዟል። ሂሳብዎ ይመለሳል።<br>The game was cancelled by admin.</div><button class="c-btn" onclick="dismissCancel()">OK — Back to Home</button></div>
+
+<script>
+var API_BASE = window.location.origin;
+var COLS     = ['B','I','N','G','O'];
+var COL_COLORS = {B:'#4a9eff',I:'#9b59b6',N:'#e91e8c',G:'#ffd700',O:'#ff6b35'};
+var COL_TEXT   = {B:'#fff',I:'#fff',N:'#fff',G:'#000',O:'#000'};
+var AM_NUMBERS = {1:'አንድ',2:'ሁለት',3:'ሶስት',4:'አራት',5:'አምስት',6:'ስድስት',7:'ሰባት',8:'ስምንት',9:'ዘጠኝ',10:'አስር',11:'አስራ አንድ',12:'አስራ ሁለት',13:'አስራ ሶስት',14:'አስራ አራት',15:'አስራ አምስት',16:'አስራ ስድስት',17:'አስራ ሰባት',18:'አስራ ስምንት',19:'አስራ ዘጠኝ',20:'ሃያ',21:'ሃያ አንድ',22:'ሃያ ሁለት',23:'ሃያ ሶስት',24:'ሃያ አራት',25:'ሃያ አምስት',26:'ሃያ ስድስት',27:'ሃያ ሰባት',28:'ሃያ ስምንት',29:'ሃያ ዘጠኝ',30:'ሰላሳ',31:'ሰላሳ አንድ',32:'ሰላሳ ሁለት',33:'ሰላሳ ሶስት',34:'ሰላሳ አራት',35:'ሰላሳ አምስት',36:'ሰላሳ ስድስት',37:'ሰላሳ ሰባት',38:'ሰላሳ ስምንት',39:'ሰላሳ ዘጠኝ',40:'አርባ',41:'አርባ አንድ',42:'አርባ ሁለት',43:'አርባ ሶስት',44:'አርባ አራት',45:'አርባ አምስት',46:'አርባ ስድስት',47:'አርባ ሰባት',48:'አርባ ስምንት',49:'አርባ ዘጠኝ',50:'ሃምሳ',51:'ሃምሳ አንድ',52:'ሃምሳ ሁለት',53:'ሃምሳ ሶስት',54:'ሃምሳ አራት',55:'ሃምሳ አምስት',56:'ሃምሳ ስድስት',57:'ሃምሳ ሰባት',58:'ሃምሳ ስምንት',59:'ሃምሳ ዘጠኝ',60:'ስልሳ',61:'ስልሳ አንድ',62:'ስልሳ ሁለት',63:'ስልሳ ሶስት',64:'ስልሳ አራት',65:'ስልሳ አምስት',66:'ስልሳ ስድስት',67:'ስልሳ ሰባት',68:'ስልሳ ስምንት',69:'ስልሳ ዘጠኝ',70:'ሰባ',71:'ሰባ አንድ',72:'ሰባ ሁለት',73:'ሰባ ሶስት',74:'ሰባ አራት',75:'ሰባ አምስት'};
+
+// ================= MULTIPLAYER STATE (server-authoritative) =================
+var tgUser=null,tgUserId=null,userMainBalance=0,userPlayBalance=0,apiAvailable=false;
+var currentStake=10,currentGameId=null,gameStatus='waiting';
+var roomPlayers=0,roomCards=0,prizePool=0,maxWinners=1,myCardLimit=2;var getReadyActive=false,getReadyTimer=null;
+var myCards=[];            // [{card_id,label,numbers,marked}]
+var claimedCards=new Set();// labels already sent to server for claiming
+var playersRoster=[];      // [{user_id,name,cards:[labels]}] lobby roster
+var takenLabels=new Set(); // card labels taken by other players
+var myUserId=tgUserId || 0;
+var timeLeft=35,timerIv=null;
+var soundOn=false,currentPeriod='week',currentCategory='deposit',leaderboardInterval=null;
+var socket=null,joinPending=false,joinedRoom=false;
+var winnersList=[],myWinAmount=0;
+var game={called:new Set(),current:null,recentBalls:[],callCount:0,cards:[],marked:[],wonLines:[],cardNums:[]};
+var waitGame={called:new Set(),current:null,recentBalls:[],callCount:0};
+var currentRulesLang = 'en'; var currentRulesTab = 'terms';
+
+function openRules() { document.getElementById('rules-screen').classList.add('active'); renderRules(); }
+function closeRules() { document.getElementById('rules-screen').classList.remove('active'); }
+function setRulesLang(lang) { currentRulesLang = lang; document.getElementById('lang-en').classList.toggle('active', lang==='en'); document.getElementById('lang-am').classList.toggle('active', lang==='am'); renderRules(); }
+function setRulesTab(tab) { currentRulesTab = tab; document.getElementById('tab-terms').classList.toggle('active', tab==='terms'); document.getElementById('tab-info').classList.toggle('active', tab==='info'); renderRules(); }
+
+function renderRules() {
+  var body = document.getElementById('rules-body');
+  if (currentRulesTab === 'terms') {
+    body.innerHTML = currentRulesLang === 'en' ? getTermsEn() : getTermsAm();
+  } else {
+    body.innerHTML = currentRulesLang === 'en' ? getInfoEn() : getInfoAm();
+  }
+}
+
+function getTermsEn() {
+  return `<h1>Terms & Conditions</h1><h1 class="sub">Adwa Bingo</h1><p style="text-align:center; color:var(--muted); font-size:12px; margin-bottom:16px;">⚖️ Legal · Official Rules</p><p>Welcome to Adwa Bingo. By accessing or using our platform, you agree to be bound by the following Terms and Conditions. Please read them carefully.</p><h2><span class="rule-num">1</span> Nature of the Game and Fair Play</h2><h3>Purely Luck-Based</h3><p>Adwa Bingo is a game of chance. All outcomes are generated randomly.</p><h3>Entertainment Purpose</h3><p>This platform is intended for entertainment purposes only. Participants should only play with funds they can afford to lose.</p><h2><span class="rule-num">2</span> Financial Transactions</h2><h3>No-Refund Policy</h3><p>Once funds are deposited into the Adwa Bingo digital wallet, they are considered final. We do not offer refunds on deposits under any circumstances.</p><h3>Withdrawal Security</h3><p>To ensure financial security and prevent fraud, withdrawals can only be processed to the original registered phone account number associated with the player's profile. No third-party transfers are permitted.</p><h2><span class="rule-num">3</span> Account Management and Platform Integrity</h2><h3>Administrative Discretion</h3><p>To maintain a secure and fair environment for all users, Adwa Bingo reserves the right to manage the platform's operations at its sole discretion. This includes, but is not limited to, the right to:</p><ul><li>Modify or adjust platform features to ensure game balance.</li><li>Restrict or suspend accounts suspected of violating fair play.</li><li>Limit withdrawal or deposit functionalities during audits or system maintenance.</li></ul><h3>Finality of Decisions</h3><p>The company reserves these rights to protect the integrity of the game and may exercise them without prior notice when deemed necessary for platform security.</p><h2><span class="rule-num">4</span> General Betting (Bingo) Rules</h2><h3>Age Requirement</h3><p>Players must be 21 years of age or older (or the legal gambling age in their jurisdiction).</p><h3>Prohibited Conduct</h3><p>Any use of "bots," external software, or exploitation of system glitches to gain an advantage is strictly prohibited and will lead to an immediate permanent ban.</p><h3>Responsible Gaming</h3><p>We encourage all players to play responsibly. If you feel your gaming habits are becoming problematic, please seek professional assistance.</p>`;
+}
+
+function getTermsAm() {
+  return `<h1>ደንቦች እና ግዴታዎች</h1><h1 class="sub">ADWA BINGO</h1><p style="text-align:center; color:var(--muted); font-size:12px; margin-bottom:16px;">⚖️ ሕጋዊ · ኦፊሴላዊ ደንቦች</p><p>እንኳን ወደ አድዋ ቢንጎ በደህና መጡ። የእኛን የመጫወቻ መድረክ ሲጠቀሙ የሚከተሉትን ደንቦች እና ግዴታዎች ለማክበር ተስማምተዋል። እባክዎን በጥንቃቄ ያንብቡ።</p><h2><span class="rule-num">1</span> የጨዋታው ባህሪ</h2><h3>በዕድል ላይ የተመሰረተ</h3><p>አድዋ ቢንጎ ሙሉ በሙሉ በዕድል ላይ የተመሰረተ ጨዋታ ነው።</p><h3>ለመዝናኛ ብቻ</h3><p>ይህ መድረክ የተዘጋጀው ለመዝናኛ ብቻ ነው። ተጫዋቾች ሊያጡት የሚችሉትን ገንዘብ ብቻ በመጠቀም እንዲጫወቱ ይመከራል።</p><h2><span class="rule-num">2</span> የገንዘብ ዝውውር</h2><h3>ተመላሽ የማይደረግ ክፍያ</h3><p>አንዴ ወደ አድዋ ቢንጎ የኪስ ቦርሳ (Wallet) ገቢ የተደረገ ገንዘብ በማንኛውም ሁኔታ ተመላሽ አይደረግም።</p><h3>የገንዘብ ወጪ (Withdrawal)</h3><p>ለደህንነት ሲባል፣ ተጫዋቾች ገንዘብ ወጪ ማድረግ የሚችሉት በተመዘገቡበት የስልክ ቁጥር ብቻ ነው። ወደ ሌላ ሰው ወይም ያልተመዘገበ ቁጥር ገንዘብ ማስተላለፍ አይቻልም።</p><h2><span class="rule-num">3</span> የመድረኩ መብቶች እና ደህንነት</h2><h3>የአስተዳደር ውሳኔዎች</h3><p>አድዋ ቢንጎ ለመድረኩ ደህንነት እና ለተጫዋቾች እኩልነት ሲባል በማንኛውም ጊዜ አስፈላጊ የሆኑ የአስተዳደር እርምጃዎችን የመውሰድ ሙሉ መብቱ የተጠበቀ ነው። ይህም የሚከተሉትን ሊያካትት ይችላል፦</p><ul><li>የጨዋታውን ሚዛን ለመጠበቅ አስፈላጊ የሆኑ ማሻሻያዎችን ማድረግ።</li><li>ከደንብ ውጭ የሚንቀሳቀሱ ተጫዋቾችን ማገድ ወይም መገደብ።</li><li>ለጥገና ወይም ለደህንነት ፍተሻ ሲባል የገንዘብ ዝውውሮችን ለጊዜው ማቆም ወይም መገደብ።</li></ul><h3>ማሳሰቢያ</h3><p>ኩባንያው እነዚህን እርምጃዎች የሚወስደው የመድረኩን ትክክለኛነት ለመጠበቅ ሲሆን፣ እንደ አስፈላጊነቱ ያለ ቅድመ ማስታወቂያ ሊተገበሩ ይችላሉ።</p><h2><span class="rule-num">4</span> ጠቅላላ ደንቦች</h2><h3>የዕድሜ ገደብ</h3><p>ተጫዋቾች ዕድሜያቸው 21 ዓመት እና ከዚያ በላይ መሆን አለበት።</p><h3>የተከለከሉ ተግባራት</h3><p>በሶፍትዌር (Bots) መጠቀም ወይም የመድረኩን የቴክኒክ ክፍተቶች ለራስ ጥቅም ለማዋል መሞከር በጥብቅ የተከለከለ ነው፤ ይህን የሚያደርጉ ተጫዋቾችም ወዲያውኑ ይታገዳሉ።</p><h3>ኃላፊነት የተሞላበት ጨዋታ</h3><p>ተጫዋቾች በኃላፊነት ስሜት እንዲጫወቱ እናበረታታለን።</p>`;
+}
+
+function getInfoEn() {
+  return `
+<div class="rules-support">☎️ <strong>Support</strong><br>If you have any problems, contact <a href="https://t.me/one_day_82" target="_blank">@one_day_82</a></div>
+<h2>🎮 How to play</h2>
+<p><span class="rule-num">1</span> Click "Open Game"</p>
+<p><span class="rule-num">2</span> Select your Bingo cards</p>
+<p><span class="rule-num">3</span> Follow along as numbers are called and match them on your card</p>
+<p><span class="rule-num">4</span> When you complete a winning pattern, shout "BINGO"</p>
+<p style="color:var(--green); margin-top:8px;">If you turn on Automatic, you don't need to do steps 3 and 4.</p>
+<h2>🏆 Winning Patterns</h2>
+<span class="pattern-label">Any row ⥨</span>
+<div class="pattern-box">🟢 🟡 🟠 🔴 🟣
+🟩 🟩 🟩 🟩 🟩
+⬜ ⬜ ⬜ ⬜ ⬜
+⬜ ⬜ ❎ ⬜ ⬜
+⬜ ⬜ ⬜ ⬜ ⬜
+⬜ ⬜ ⬜ ⬜ ⬜</div>
+<span class="pattern-label">Any column ⥯</span>
+<div class="pattern-box">🟢 🟡 🟠 🔴 🟣
+🟩 ⬜ ⬜ ⬜ ⬜
+🟩 ⬜ ⬜ ⬜ ⬜
+🟩 ⬜ ❎ ⬜ ⬜
+🟩 ⬜ ⬜ ⬜ ⬜
+🟩 ⬜ ⬜ ⬜ ⬜</div>
+<span class="pattern-label">Any diagonal ⤢⤡</span>
+<div class="pattern-box">🟢 🟡 🟠 🔴 🟣
+🟩 ⬜ ⬜ ⬜ ⬜
+⬜ 🟩 ⬜ ⬜ ⬜
+⬜ ⬜ ❎ ⬜ ⬜
+⬜ ⬜ ⬜ 🟩 ⬜
+⬜ ⬜ ⬜ ⬜ 🟩</div>
+<div class="pattern-box">🟢 🟡 🟠 🔴 🟣
+⬜ ⬜ ⬜ ⬜ 🟩
+⬜ ⬜ ⬜ 🟩 ⬜
+⬜ ⬜ ❎ ⬜ ⬜
+⬜ 🟩 ⬜ ⬜ ⬜
+🟩 ⬜ ⬜ ⬜ ⬜</div>
+<span class="pattern-label">Four corners ⸬</span>
+<div class="pattern-box">🟢 🟡 🟠 🔴 🟣
+🟩 ⬜ ⬜ ⬜ 🟩
+⬜ ⬜ ⬜ ⬜ ⬜
+⬜ ⬜ ❎ ⬜ ⬜
+⬜ ⬜ ⬜ ⬜ ⬜
+🟩 ⬜ ⬜ ⬜ 🟩</div>
+<h2>💰 Commands</h2>
+<div class="rules-cmd"><code>/start</code> <span>Main menu / ዋና ማውጫ</span></div>
+<div class="rules-cmd"><code>/lang</code> <span>Change language / ቋንቋ ይቀይሩ</span></div>
+<div class="rules-cmd"><code>/play</code> <span>Open Game / ይጫወቱ</span></div>
+<div class="rules-cmd"><code>/deposit</code> <span>Deposit / ያስገቡ</span></div>
+<div class="rules-cmd"><code>/balance</code> <span>Balance / ሂሳብ</span></div>
+<div class="rules-cmd"><code>/withdraw</code> <span>Withdraw / ያውጡ</span></div>
+<div class="rules-cmd"><code>/history</code> <span>History / ታሪክ</span></div>
+<div class="rules-cmd"><code>/profile</code> <span>Profile / መገለጫ</span></div>
+<div class="rules-cmd"><code>/support</code> <span>Support / ድጋፍ</span></div>
+<div class="rules-cmd"><code>/invite</code> <span>Invite Friends / ጓደኛ ይጋብዙ</span></div>
+<div class="rules-cmd"><code>/agent</code> <span>Agent Panel / ወኪል</span></div>
+<div class="rules-cmd"><code>/transfer</code> <span>Transfer / ይላኩ</span></div>
+<div class="rules-cmd"><code>/info</code> <span>Info & Rules / መረጃ</span></div>
+<p style="text-align:center; margin-top:20px; font-size:14px; color:var(--yellow); font-weight:700;">Good luck! 🍀</p>
+  `;
+}
+
+function getInfoAm() {
+  return `
+<div class="rules-support">☎️ <strong>Support (ድጋፍ)</strong><br>ችግር ካጋጠመዎት <a href="https://t.me/one_day_82" target="_blank">@one_day_82</a> ን ያግኙ</div>
+<h2>🎮 እንዴት እንደሚጫወቱ</h2>
+<p><span class="rule-num">1</span> "Play Now/ይጫወቱ" የሚለውን ይጫኑ</p>
+<p><span class="rule-num">2</span> በምርጫ ጊዜ የቢንጎ ካርዶችዎን ይምረጡ</p>
+<p><span class="rule-num">3</span> ቁጥሮች ሲጠሩ እየተከታተሉ ካርዶችዎ ውስጥ ካሉ ያጥቁሩ</p>
+<p><span class="rule-num">4</span> ቢያንስ አንድ የማሸነፊያ ንድፍ ሲያጠናቅቁ "BINGO" ይበሉ</p>
+<p style="color:var(--green); margin-top:8px;">Automatic ካበሩ 3 እና 4ን ማድረግ አይጠበቅብዎትም።</p>
+<h2>🏆 የማሸነፊያ ንድፎች</h2>
+<span class="pattern-label">Any row(ማንኛውንም ረድፍ) ⥨</span>
+<div class="pattern-box">🟢 🟡 🟠 🔴 🟣
+🟩 🟩 🟩 🟩 🟩
+⬜ ⬜ ⬜ ⬜ ⬜
+⬜ ⬜ ❎ ⬜ ⬜
+⬜ ⬜ ⬜ ⬜ ⬜
+⬜ ⬜ ⬜ ⬜ ⬜</div>
+<span class="pattern-label">Any column(ማንኛውንም አምድ) ⥯</span>
+<div class="pattern-box">🟢 🟡 🟠 🔴 🟣
+🟩 ⬜ ⬜ ⬜ ⬜
+🟩 ⬜ ⬜ ⬜ ⬜
+🟩 ⬜ ❎ ⬜ ⬜
+🟩 ⬜ ⬜ ⬜ ⬜
+🟩 ⬜ ⬜ ⬜ ⬜</div>
+<span class="pattern-label">Any diagonal(ማንኛውንም ሰያፍ) ⤢⤡</span>
+<div class="pattern-box">🟢 🟡 🟠 🔴 🟣
+🟩 ⬜ ⬜ ⬜ ⬜
+⬜ 🟩 ⬜ ⬜ ⬜
+⬜ ⬜ ❎ ⬜ ⬜
+⬜ ⬜ ⬜ 🟩 ⬜
+⬜ ⬜ ⬜ ⬜ 🟩</div>
+<div class="pattern-box">🟢 🟡 🟠 🔴 🟣
+⬜ ⬜ ⬜ ⬜ 🟩
+⬜ ⬜ ⬜ 🟩 ⬜
+⬜ ⬜ ❎ ⬜ ⬜
+⬜ 🟩 ⬜ ⬜ ⬜
+🟩 ⬜ ⬜ ⬜ ⬜</div>
+<span class="pattern-label">Four corners(አራቱንም ማዕዘኖች) ⸬</span>
+<div class="pattern-box">🟢 🟡 🟠 🔴 🟣
+🟩 ⬜ ⬜ ⬜ 🟩
+⬜ ⬜ ⬜ ⬜ ⬜
+⬜ ⬜ ❎ ⬜ ⬜
+⬜ ⬜ ⬜ ⬜ ⬜
+🟩 ⬜ ⬜ ⬜ 🟩</div>
+<h2>💰 ትእዛዞች (Commands)</h2>
+<div class="rules-cmd"><code>/start</code> <span>Main menu / ዋና ማውጫ</span></div>
+<div class="rules-cmd"><code>/lang</code> <span>Change language / ቋንቋ ይቀይሩ</span></div>
+<div class="rules-cmd"><code>/play</code> <span>Open Game / ይጫወቱ</span></div>
+<div class="rules-cmd"><code>/deposit</code> <span>Deposit / ያስገቡ</span></div>
+<div class="rules-cmd"><code>/balance</code> <span>Balance / ሂሳብ</span></div>
+<div class="rules-cmd"><code>/withdraw</code> <span>Withdraw / ያውጡ</span></div>
+<div class="rules-cmd"><code>/history</code> <span>History / ታሪክ</span></div>
+<div class="rules-cmd"><code>/profile</code> <span>Profile / መገለጫ</span></div>
+<div class="rules-cmd"><code>/support</code> <span>Support / ድጋፍ</span></div>
+<div class="rules-cmd"><code>/invite</code> <span>Invite Friends / ጓደኛ ይጋብዙ</span></div>
+<div class="rules-cmd"><code>/agent</code> <span>Agent Panel / ወኪል</span></div>
+<div class="rules-cmd"><code>/transfer</code> <span>Transfer / ይላኩ</span></div>
+<div class="rules-cmd"><code>/info</code> <span>Info & Rules / መረጃ</span></div>
+<p style="text-align:center; margin-top:20px; font-size:14px; color:var(--yellow); font-weight:700;">መልካም ዕድል ይገጥምዎ! 🍀</p>
+  `;
+}
+
+function setTxt(id,v){var el=document.getElementById(id);if(el)el.textContent=v;}
+function colFor(n){return Math.floor((n-1)/15);}
+function letterFor(n){return COLS[colFor(n)];}
+
+function updatePlayersDisplay(){setTxt('s-players', roomPlayers);setTxt('w-players-top', roomPlayers);updateWinBox();}
+function updateWinBox(){var totalWin=Math.round((roomCards||0)*currentStake*0.8);setTxt('s-win-sel', totalWin);setTxt('s-win-game', totalWin);setTxt('w-win-top', totalWin);}
+
+// ============================ LOBBY ROSTER ============================
+function applyRoster(players, taken){
+  playersRoster = players||[];
+  takenLabels = new Set(taken||[]);
+  renderRoster();
+}
+
+function renderRoster(){
+  var list=document.getElementById('players-list');
+  if(list){
+    if(!playersRoster.length){
+      list.innerHTML='<div class="player-empty">No players yet — pick a card to join</div>';
+    }else{
+      list.innerHTML=playersRoster.map(function(p){
+        var isMe=(p.user_id===myUserId);
+        var cards=(p.cards||[]);
+        var chips=cards.length?cards.map(function(l){return '<span class="pcard">#'+l+'</span>';}).join(''):'<span style="font-size:9px;color:var(--muted);">no card yet</span>';
+        var color=cards.length?'var(--green)':'var(--orange)';
+        return '<div class="player-row"><span class="pdot" style="background:'+color+';"></span>'+
+               '<span class="pname">'+(isMe?'👤 ':'')+escHtml(p.name||'Player')+'</span>'+
+               '<span class="pcards">'+chips+'</span></div>';
+      }).join('');
+    }
+  }
+  setTxt('roster-count', playersRoster.length);
+  // show taken labels on the pick grid
+  for(var i=1;i<=400;i++){
+    var el=document.getElementById('cc-'+i);
+    if(!el) continue;
+    if(takenLabels.has(i) && !selHas(i)){
+      el.classList.add('taken');
+      el.innerHTML=i;
+    }else{
+      el.classList.remove('taken');
+      el.innerHTML=i;
+    }
+  }
+}
+
+function escHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+// ============================ STAKE / JOIN ============================
+function selectStake(stake) {
+  currentStake = stake;
+  setTxt('s-bet-stake', currentStake);
+  setTxt('w-bet-stake', currentStake);
+  setTxt('g-bet-stake', currentStake);
+  resetGameState();
+  showScreen('screen-home');
+  showSelectScreen();
+  fetchBalance();
+  joinGame(null);           // server assigns the unique Game ID
+}
+
+function joinGame(explicitGameId) {
+  if (!tgUserId) return;
+  joinPending = true;
+  setTxt('game-id-label', 'Joining...');
+  if (socket && socket.connected) {
+    socket.emit('join_game', {stake: currentStake, game_id: explicitGameId, user_id: tgUserId, name: (tgUser&&tgUser.first_name)||'Player'});
+  }
+}
+
+function backToStake() {
+  if (socket && socket.connected && currentGameId && joinedRoom) {
+    socket.emit('leave_game', {game_id: currentGameId, user_id: tgUserId});
+  }
+  joinedRoom = false;
+  showScreen('screen-stake');
+}
+
+function resetGameState() {
+  currentGameId = null; gameStatus = 'waiting';
+  joinedRoom = false; joinPending = false;
+  getReadyActive = false;
+  clearTimeout(getReadyTimer);
+  var cbe=document.getElementById('current-big');
+  if(cbe){cbe.style.background='#333';cbe.style.color='#fff';cbe.style.boxShadow='none';cbe.style.animation='none';}
+  var gcb=document.getElementById('game-current-label');if(gcb)gcb.textContent='Current';
+  roomPlayers = 0; roomCards = 0; prizePool = 0; maxWinners = 1;
+  myCards = []; claimedCards = new Set();
+  winnersList = []; myWinAmount = 0;
+  stopTimer();
+  game.called = new Set(); game.current = null; game.recentBalls = []; game.callCount = 0;
+  game.cards = []; game.marked = []; game.wonLines = []; game.cardNums = [];
+  waitGame.called = new Set(); waitGame.current = null; waitGame.recentBalls = []; waitGame.callCount = 0;
+  setTxt('s-call','0'); setTxt('w-call-top','0');
+  var _rb=document.getElementById('recent-balls');if(_rb)_rb.innerHTML='';
+  var _wrb=document.getElementById('wait-recent-balls');if(_wrb)_wrb.innerHTML='';
+  setTxt('sel-count','0'); setTxt('s-win-sel','0'); setTxt('s-win-game','0'); setTxt('w-win-top','0');
+  var _mc=document.getElementById('mini-cards');if(_mc)_mc.innerHTML='';
+  for (var i=1;i<=400;i++){var el=document.getElementById('cc-'+i);if(el)el.classList.remove('selected','disabled','taken');}
+  document.getElementById('card2-box').style.display='none';
+  document.getElementById('no-card-slot').style.display='flex';
+  playersRoster=[];takenLabels=new Set();
+  updatePlayersDisplay();
+}
+
+function showWaitScreen(){document.getElementById('select-area').style.display='none';document.getElementById('wait-area').style.display='flex';document.getElementById('home-topbar').style.display='none';}
+function showSelectScreen(){document.getElementById('select-area').style.display='';document.getElementById('wait-area').style.display='none';document.getElementById('home-topbar').style.display='flex';}
+
+// ============================ CARD SELECTION ============================
+function buildGrid(){var g=document.getElementById('cards-grid'),h='';for(var i=1;i<=400;i++)h+='<div class="card-cell" id="cc-'+i+'" onclick="toggleCard('+i+')">'+i+'</div>';g.innerHTML=h;}
+
+function toggleCard(n) {
+  if (gameStatus !== 'waiting') return;
+  if (selHas(n)) {
+    // deselect -> server refunds the stake
+    if (!socket || !socket.connected) return;
+    socket.emit('deselect_card', {game_id: currentGameId, user_id: tgUserId, card_id: cardIdForLabel(n)});
+    var el=document.getElementById('cc-'+n); if(el) el.classList.remove('selected');
+    return;
+  }
+  if (myCards.length >= myCardLimit) return;
+  var totalAvail = userPlayBalance + userMainBalance;
+  if (apiAvailable && totalAvail < currentStake) {
+    if (window.Telegram && Telegram.WebApp) Telegram.WebApp.showAlert('⚠️ Insufficient balance! በቂ ሂሳብ የለም!');
+    return;
+  }
+  if (socket && socket.connected) {
+    socket.emit('select_card', {game_id: currentGameId, user_id: tgUserId, label: n});
+  }
+}
+
+function selHas(n){return myCards.some(function(c){return c.label===n;});}
+function cardIdForLabel(n){var c=myCards.filter(function(x){return x.label===n;})[0];return c?c.card_id:null;}
+
+function renderMiniCards(){
+  var host=document.getElementById('mini-cards');if(!host)return;
+  if(!myCards.length){host.innerHTML='';return;}
+  host.innerHTML=myCards.map(function(c,i){
+    var cells=game.cards[i];if(!cells)return '';
+    var title='BINGO #'+c.label;
+    var grid=cells.map(function(cell,idx){
+      var isFree=cell.n==='★',isMarked=game.marked[i]&&game.marked[i].has(idx);
+      var cls=isFree?'mini-cell free':isMarked?'mini-cell marked':'mini-cell';
+      return '<div class="'+cls+'">'+cell.n+'</div>';
+    }).join('');
+    return '<div class="mini-card"><div class="mini-card-title">'+title+'</div><div class="mini-card-grid">'+grid+'</div></div>';
+  }).join('');
+}
+
+function addServerCard(card) {
+  // card = {card_id,label,numbers,marked}
+  myCards.push(card);
+  claimedCards.delete(card.label);
+  // build render grid from SERVER numbers (index 12 = FREE)
+  var built = card.numbers.map(function(n,ix){return {c:ix%5, r:Math.floor(ix/5), n:n};});
+  game.cards.push(built);
+  game.marked.push(new Set(card.marked||[]));
+  game.wonLines.push(new Set());
+  game.cardNums.push(card.label);
+  setTxt('card1-id', game.cardNums[0]||'—');
+  if (game.cardNums.length>=2){setTxt('card2-id',game.cardNums[1]);document.getElementById('card2-box').style.display='block';document.getElementById('no-card-slot').style.display='none';}
+  else{document.getElementById('card2-box').style.display='none';document.getElementById('no-card-slot').style.display='flex';}
+  renderCardHeader('card1-header');
+  if (game.cardNums.length>=2) renderCardHeader('card2-header');
+  renderAllCards();
+  var el=document.getElementById('cc-'+card.label);if(el)el.classList.add('selected');
+  setTxt('sel-count', myCards.length);
+  renderMiniCards();
+  updateWinBox();
+  game.totalPlayers = roomPlayers;
+  updatePlayersDisplay();
+}
+
+function removeServerCard(cardId) {
+  var idx=-1;
+  myCards.forEach(function(c,i){if(c.card_id===cardId)idx=i;});
+  if (idx===-1) return;
+  var label = myCards[idx].label;
+  myCards.splice(idx,1);
+  game.cards.splice(idx,1); game.marked.splice(idx,1); game.wonLines.splice(idx,1); game.cardNums.splice(idx,1);
+  var el=document.getElementById('cc-'+label);if(el)el.classList.remove('selected');
+  setTxt('card1-id', game.cardNums[0]||'—');
+  if (game.cardNums.length>=2){setTxt('card2-id',game.cardNums[1]);document.getElementById('card2-box').style.display='block';document.getElementById('no-card-slot').style.display='none';}
+  else{document.getElementById('card2-box').style.display='none';document.getElementById('no-card-slot').style.display='flex';}
+  setTxt('sel-count', myCards.length);
+  renderMiniCards();
+  updateWinBox();
+  renderAllCards();
+}
+
+function showGetReady(){
+  getReadyActive=true;
+  var gcb=document.getElementById('game-current-label');if(gcb)gcb.textContent='GET READY';
+  var cbe=document.getElementById('current-big');
+  if(cbe){
+    cbe.style.background='var(--yellow)';
+    cbe.style.color='#000';
+    cbe.style.boxShadow='0 0 20px rgba(255,215,0,0.8)';
+    cbe.style.animation='readyPulse 0.6s ease-in-out infinite';
+  }
+  setTxt('cb-letter','');
+  var cbn=document.getElementById('cb-num');
+  if(cbn){cbn.style.fontSize='7px';cbn.style.lineHeight='1.15';cbn.innerHTML='GET<br>READY';}
+  clearTimeout(getReadyTimer);
+  getReadyTimer=setTimeout(function(){hideGetReady(); renderNumGrid();},5000);
+}
+function hideGetReady(){
+  getReadyActive=false;
+  var cbe=document.getElementById('current-big');
+  if(cbe){
+    cbe.style.background='#333';
+    cbe.style.color='#fff';
+    cbe.style.boxShadow='none';
+    cbe.style.animation='none';
+  }
+  setTxt('cb-letter','-');
+  var cbn=document.getElementById('cb-num');
+  if(cbn){cbn.style.fontSize='22px';cbn.style.lineHeight='1';cbn.innerHTML='-';}
+  var gcb=document.getElementById('game-current-label');if(gcb)gcb.textContent='Current';
+}
+
+// ============================ TIMER ============================
+var timerDeadline=null;
+function startTimer() {
+  stopTimer();
+  timerDeadline=Date.now()+Math.max(0,timeLeft)*1000;
+  tickTimer();
+  timerIv=setInterval(tickTimer,250);
+}
+function tickTimer(){
+  var el=document.getElementById('s-time');
+  if(!el)return;
+  var rem=timerDeadline?Math.max(0,Math.ceil((timerDeadline-Date.now())/1000)):Math.max(0,timeLeft);
+  el.textContent=rem+'s';
+  el.style.color=rem<=10?'var(--orange)':'var(--yellow)';
+  if(rem<=0){stopTimer();el.textContent='0s';}
+}
+function stopTimer(){clearInterval(timerIv);timerIv=null;timerDeadline=null;}
+
+// ============================ RENDERING ============================
+function renderNumGrid(){var g=document.getElementById('num-grid'),h='';for(var row=1;row<=15;row++){for(var ci=0;ci<5;ci++){var n=ci*15+row,L=COLS[ci];if(game.current===n){h+='<div class="num-cell current" style="background:#ffd700;color:#000;border-color:#ffd700;box-shadow:0 0 12px #ffd700;">'+n+'</div>';}else if(game.called.has(n)){h+='<div class="num-cell called" style="background:#132f4f;color:#4a9eff;border-color:#1e4976;">'+n+'</div>';}else{h+='<div class="num-cell">'+n+'</div>';}}}g.innerHTML=h;}
+
+function renderWaitGrid(){var g=document.getElementById('wait-num-grid');if(!g)return;var h='';for(var row=1;row<=15;row++){for(var ci=0;ci<5;ci++){var n=ci*15+row,L=COLS[ci];if(waitGame.current===n){h+='<div class="num-cell current" style="background:#ffd700;color:#000;border-color:#ffd700;box-shadow:0 0 12px #ffd700;">'+n+'</div>';}else if(waitGame.called.has(n)){h+='<div class="num-cell called" style="background:#132f4f;color:#4a9eff;border-color:#1e4976;">'+n+'</div>';}else{h+='<div class="num-cell">'+n+'</div>';}}}g.innerHTML=h;}
+function renderWaitBalls(){var el=document.getElementById('wait-recent-balls');if(!el)return;el.innerHTML=waitGame.recentBalls.slice(-4).map(function(n){var L=letterFor(n);return '<div class="rball" style="background:'+COL_COLORS[L]+';color:'+COL_TEXT[L]+'"><span class="rl">'+L+'</span><span class="rn">'+n+'</span></div>';}).join('');}
+function renderWaitCurrent(){if(!waitGame.current)return;var n=waitGame.current,L=letterFor(n);var el=document.getElementById('wait-current-big');if(!el)return;el.style.background=COL_COLORS[L];el.style.color=COL_TEXT[L];el.style.boxShadow='0 0 16px '+COL_COLORS[L];setTxt('wait-cb-letter',L+'-');setTxt('wait-cb-num',n);}
+
+function renderCardHeader(id){document.getElementById(id).innerHTML=COLS.map(function(L){return '<div class="ch '+L+'">'+L+'</div>';}).join('');}
+
+function renderCard(ci){
+  var gid=ci===0?'card1-grid':'card2-grid';
+  var grid=document.getElementById(gid);
+  if(!grid||!game.cards[ci])return;
+  var wins=new Set();
+  if(game.wonLines[ci]) game.wonLines[ci].forEach(function(line){line.forEach(function(i){wins.add(i);});});
+  grid.innerHTML=game.cards[ci].map(function(cell,idx){
+    var isFree=cell.n==='★',isMarked=game.marked[ci].has(idx),isWin=wins.has(idx);
+    var cls=isWin?'cc win-cell':isFree?'cc free':isMarked?'cc marked':'cc';
+    return '<div class="'+cls+'" onclick="tapCard('+ci+','+idx+')">'+cell.n+'</div>';
+  }).join('');
+}
+function renderAllCards(){for(var ci=0;ci<game.cards.length;ci++)renderCard(ci);}
+
+function renderRecentBalls(){document.getElementById('recent-balls').innerHTML=game.recentBalls.slice(-4).map(function(n){var L=letterFor(n);return '<div class="rball" style="background:'+COL_COLORS[L]+';color:'+COL_TEXT[L]+'"><span class="rl">'+L+'</span><span class="rn">'+n+'</span></div>';}).join('');}
+function renderCurrentBall(){if(!game.current)return;var n=game.current,L=letterFor(n);var el=document.getElementById('current-big');el.style.background=COL_COLORS[L];el.style.color=COL_TEXT[L];el.style.boxShadow='0 0 20px '+COL_COLORS[L];var cbnEl=document.getElementById('cb-num');cbnEl.style.fontSize='22px';cbnEl.style.lineHeight='1';setTxt('cb-letter',L+'-');cbnEl.textContent=n;var currentLabelEl=document.getElementById('game-current-label');if(currentLabelEl)currentLabelEl.textContent='Current';}
+
+// ============================ MARKING & CLAIMING ============================
+function tapCard(ci,idx){
+  if(idx===12)return;                          // FREE center
+  if(gameStatus!=='running')return;
+  var n=game.cards[ci][idx].n;
+  if(game.marked[ci].has(idx))game.marked[ci].delete(idx);
+  else game.marked[ci].add(idx);
+  renderCard(ci);
+  if(socket&&socket.connected){
+    socket.emit('mark_number',{game_id:currentGameId,user_id:tgUserId,card_id:myCards[ci]?myCards[ci].card_id:null,number:n});
+  }
+}
+
+function processBall(n){
+  if(getReadyActive){hideGetReady();renderNumGrid();}  // first ball ends GET READY
+  if(game.called.has(n))return;
+  game.called.add(n);game.current=n;
+  game.recentBalls.push(n);if(game.recentBalls.length>8)game.recentBalls.shift();
+  game.callCount++;setTxt('s-call',game.callCount);
+  waitGame.called.add(n);waitGame.current=n;
+  waitGame.recentBalls.push(n);if(waitGame.recentBalls.length>4)waitGame.recentBalls.shift();
+  waitGame.callCount++;setTxt('w-call-top',waitGame.callCount);
+  renderWaitGrid();renderWaitBalls();renderWaitCurrent();
+  playBallSound(n);
+  if(game.cards.length>0){
+    var callCol=Math.floor((n-1)/15);
+    game.cards.forEach(function(card,ci){card.forEach(function(cell,idx){if(game.marked[ci]&&cell.n===n&&cell.c===callCol)game.marked[ci].add(idx);});});
+    renderNumGrid();renderRecentBalls();renderCurrentBall();renderAllCards();
+    for(var ci=0;ci<game.cards.length;ci++)checkLocalWin(ci);
+  }
+}
+
+// local UX check only — the SERVER validates every claim
+function checkLocalWin(ci){
+  if(gameStatus!=='running')return;
+  var card=game.cards[ci];if(!card)return;
+  var lines=[];
+  for(var r=0;r<5;r++)lines.push([r*5,r*5+1,r*5+2,r*5+3,r*5+4]);
+  for(var c=0;c<5;c++)lines.push([c,c+5,c+10,c+15,c+20]);
+  lines.push([0,6,12,18,24]);lines.push([4,8,12,16,20]);lines.push([0,4,20,24]);
+  var done=[];
+  lines.forEach(function(line){
+    if(line.every(function(i){var cell=card[i];return cell.n==='★'||(game.called.has(cell.n)&&cell.c===Math.floor((cell.n-1)/15));}))done.push(line);
+  });
+  if(done.length>0){
+    game.wonLines[ci]=done;
+    renderCard(ci);
+  }
+  var label=game.cardNums[ci];
+  if(done.length>0&&!claimedCards.has(label)&&socket&&socket.connected&&myCards[ci]){
+    claimedCards.add(label);
+    socket.emit('claim_bingo',{game_id:currentGameId,user_id:tgUserId,card_id:myCards[ci].card_id,name:(tgUser&&tgUser.first_name)||'Player'});
+  }
+}
+
+// ============================ WINNER / FINISH ============================
+function showWinnerScreen(winners,totalPrize,per){
+  playBingoSound();
+  var titleEl=document.getElementById('winner-title-text');
+  if(winners.length>1)titleEl.textContent=winners.length+' PLAYERS WON';
+  else titleEl.textContent='BINGO! WINNER!';
+  var namesHtml=winners.map(function(w){
+    return '<div class="winner-name-chip"><span class="wn-crown">👑</span><span>'+(w.name||'—')+'</span><span class="wn-card">#'+(w.card_label||w.cardId||'—')+'</span></div>';
+  }).join('');
+  document.getElementById('winners-names-row').innerHTML=namesHtml||'<div class="winner-name-chip"><span class="wn-crown">👑</span><span>—</span></div>';
+  setTxt('w-prize', totalPrize||0);
+  if(winners.length>1&&per>0)setTxt('w-prize-each', per+' each ('+winners.length+' winners)');
+  else setTxt('w-prize-each','');
+  // show EVERY winner's winning card, not just mine
+  var box=document.getElementById('w-cards');
+  var html=winners.map(function(w){
+    var nums=w.numbers||[];
+    var markSet={};(w.marked||[]).forEach(function(i){markSet[i]=1;});
+    var lineSet={};(w.lines||[]).forEach(function(l){l.forEach(function(i){lineSet[i]=1;});});
+    return '<div class="w-card-item"><div class="w-card-name">'+escHtml(w.name||'Player')+' <span class="wn-card">#'+(w.card_label||'—')+'</span></div>'+
+      COLS.map(function(L){return '<div class="wch '+L+'">'+L+'</div>';}).join('')+
+      '<div class="w-mini-grid">'+nums.map(function(n,i){
+        var cls='wmc';
+        if(n==='★')cls+=' wmfree';
+        else if(markSet[i])cls+=' wmmar';
+        if(lineSet[i])cls+=' wmlin';
+        return '<div class="'+cls+'">'+n+'</div>';
+      }).join('')+'</div></div>';
+  }).join('');
+  box.innerHTML=html||'';
+  document.getElementById('w-card-box').style.display=winners.length?'block':'none';
+  showScreen('screen-winner');
+  document.querySelectorAll('.nav-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('nav-home').classList.add('active');
+  startWinnerCountdown();
+}
+
+function renderWinnerCard(ci){
+  var card=game.cards[ci];if(!card)return;
+  var marked=game.marked[ci];
+  document.getElementById('w-card-hdr').innerHTML=COLS.map(function(L){return '<div class="wch '+L+'">'+L+'</div>';}).join('');
+  document.getElementById('w-card-grid').innerHTML=card.map(function(cell,idx){
+    var isFree=cell.n==='★',isMarked=marked.has(idx);
+    var cls=isFree?'wcc wfree':isMarked?'wcc wmarked':'wcc';
+    return '<div class="'+cls+'">'+cell.n+'</div>';
+  }).join('');
+}
+
+function startWinnerCountdown(){
+  var fill=document.getElementById('dist-fill');
+  var countEl=document.getElementById('next-count');
+  fill.style.transition='none';fill.style.width='100%';
+  setTimeout(function(){fill.style.transition='width 7s linear';fill.style.width='0%';},50);
+  var nc=7;countEl.textContent=nc;
+  var wIv=setInterval(function(){
+    nc--;countEl.textContent=nc;
+    if(nc<=0){clearInterval(wIv);newRound();}
+  },1000);
+}
+
+function newRound(){
+  document.getElementById('cancelled-overlay').classList.remove('show');
+  resetGameState();
+  // Clear the recent balls DOM elements
+  var rbEl=document.getElementById('recent-balls');if(rbEl)rbEl.innerHTML='';
+  var wrbEl=document.getElementById('wait-recent-balls');if(wrbEl)wrbEl.innerHTML='';
+  renderNumGrid();renderWaitGrid();
+  showScreen('screen-home');
+  showSelectScreen();
+  fetchBalance();
+  joinGame(null);   // join the brand-new open room for this stake
+}
+
+function dismissCancel(){
+  document.getElementById('cancelled-overlay').classList.remove('show');
+  newRound();
+}
+
+// ============================ SOUND ============================
+var voicesLoaded=[];
+function loadVoices(){voicesLoaded=window.speechSynthesis?window.speechSynthesis.getVoices():[];}
+if(window.speechSynthesis){window.speechSynthesis.onvoiceschanged=loadVoices;loadVoices();}
+function speakNumber(n){if(!soundOn||!window.speechSynthesis)return;var L=letterFor(n),amWord=AM_NUMBERS[n]||String(n);var u1=new SpeechSynthesisUtterance(L);u1.lang='en-US';u1.rate=0.55;u1.pitch=1.0;u1.volume=1.0;var u2=new SpeechSynthesisUtterance(amWord);var amVoice=voicesLoaded.find(function(v){return v.lang&&v.lang.startsWith('am');});if(amVoice)u2.voice=amVoice;u2.lang='am-ET';u2.rate=0.55;u2.pitch=1.0;u2.volume=1.0;window.speechSynthesis.speak(u1);window.speechSynthesis.speak(u2);}
+
+// ============================ BINGO SOUND FX (8D Web Audio) ============================
+var SFX_BASE='https://bingo-server-1.onrender.com/sounds/';
+var sfxCtx=null;
+var sfxQueue=[];      // balls waiting for their sound slot
+var sfxPlaying=false; // one announcement at a time (no overlap / cut)
+function getSfxCtx(){if(!sfxCtx){var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return null;sfxCtx=new AC();}if(sfxCtx.state==='suspended')sfxCtx.resume();return sfxCtx;}
+function numSfxUrl(n){var l=n<=15?'b':n<=30?'i':n<=45?'n':n<=60?'g':'o';return SFX_BASE+l+'-'+n+'.mp3';}
+function playBallSound(n){
+  if(!soundOn)return;
+  sfxQueue.push(n);
+  if(!sfxPlaying)sfxNext();
+}
+function sfxNext(){
+  if(!soundOn){sfxQueue=[];sfxPlaying=false;return;}
+  if(!sfxQueue.length){sfxPlaying=false;return;}
+  var n=sfxQueue.shift();
+  sfxPlaying=true;
+  if(!playBallSound8D(n)){
+    // fallback: plain Audio element
+    var a=new Audio(numSfxUrl(n));
+    a.play().catch(function(){sfxAfter(n);});
+    a.onended=function(){sfxAfter(n);};
+    a.onerror=function(){sfxAfter(n);};
+    setTimeout(function(){sfxAfter(n);},6000); // safety: never hang the queue
+  }
+}
+function sfxAfter(n){speakNumber(n);sfxNext();}
+function playBallSound8D(n){
+  var ctx=getSfxCtx();if(!ctx)return false;
+  var req=new XMLHttpRequest();req.open('GET',numSfxUrl(n),true);req.responseType='arraybuffer';
+  req.onload=function(){
+    if(req.status!==200&&req.status!==0){sfxAfter(n);return;}
+    ctx.decodeAudioData(req.response,function(buf){play8DBuffer(ctx,buf,n);},function(){sfxAfter(n);});
+  };
+  req.onerror=function(){sfxAfter(n);};
+  req.send();
+  return true;
+}
+function play8DBuffer(ctx,buf,n){
+  var src=ctx.createBufferSource();src.buffer=buf;
+  var lp=ctx.createBiquadFilter();lp.type='highpass';lp.frequency.value=120;lp.Q.value=0.7;
+  var comp=ctx.createDynamicsCompressor();comp.threshold.value=-18;comp.knee.value=20;comp.ratio.value=6;comp.attack.value=0.003;comp.release.value=0.25;
+  var pan=ctx.createStereoPanner();pan.pan.value=0;
+  var gain=ctx.createGain();gain.gain.value=1.0;
+  var lfo=ctx.createOscillator();lfo.type='sine';lfo.frequency.value=0.45;
+  var lfoGain=ctx.createGain();lfoGain.gain.value=0.9;
+  lfo.connect(lfoGain);lfoGain.connect(pan.pan);
+  src.connect(lp);lp.connect(comp);comp.connect(pan);pan.connect(gain);gain.connect(ctx.destination);
+  src.onended=function(){try{lfo.stop();}catch(e){}sfxAfter(n);};
+  src.start(0);lfo.start(0);
+}
+function playBingoSound(){if(!soundOn)return;var a=new Audio(SFX_BASE+'bingo.mp3');a.play().catch(function(){});}
+function toggleSound(){soundOn=!soundOn;document.getElementById('sound-toggle').classList.toggle('blue-on',soundOn);}
+function toggleSoundWait(){soundOn=!soundOn;var wt=document.getElementById('wait-sound-toggle');if(wt)wt.classList.toggle('blue-on',soundOn);}
+
+// ============================ TELEGRAM / API ============================
+function updateStakeProfile() {
+  if (!tgUser) return;
+  var topImgEl = document.getElementById('stake-top-avatar-img');
+  var topLetterEl = document.getElementById('stake-top-avatar-letter');
+  var topUsernameEl = document.getElementById('stake-top-username');
+  if (tgUser.photo_url) { topImgEl.src = tgUser.photo_url; topImgEl.style.display = 'block'; topLetterEl.style.display = 'none'; }
+  else { var initial = (tgUser.first_name || '?').charAt(0).toUpperCase(); topLetterEl.textContent = initial; topImgEl.style.display = 'none'; topLetterEl.style.display = 'inline'; }
+  if (tgUser.username) { topUsernameEl.textContent = '@' + tgUser.username; topUsernameEl.style.display = 'block'; }
+  else { topUsernameEl.textContent = ''; topUsernameEl.style.display = 'none'; }
+  var imgEl = document.getElementById('stake-avatar-img');
+  var letterEl = document.getElementById('stake-avatar-letter');
+  var nameEl = document.getElementById('stake-username');
+  if (tgUser.photo_url) { imgEl.src = tgUser.photo_url; imgEl.style.display = 'block'; letterEl.style.display = 'none'; }
+  else { var initial2 = (tgUser.first_name || '?').charAt(0).toUpperCase(); letterEl.textContent = initial2; imgEl.style.display = 'none'; letterEl.style.display = 'flex'; }
+  if (tgUser.username) { nameEl.textContent = '@' + tgUser.username; nameEl.style.display = 'block'; }
+  else { nameEl.textContent = ''; nameEl.style.display = 'none'; }
+}
+
+function initTelegram(){try{if(window.Telegram&&window.Telegram.WebApp){var wa=window.Telegram.WebApp;wa.ready();wa.expand();if(wa.initDataUnsafe&&wa.initDataUnsafe.user){tgUser=wa.initDataUnsafe.user;tgUserId=tgUser.id;updateUserName(tgUser.first_name||'');updateStakeProfile();}}}catch(e){}}
+async function updateUserName(firstName){if(!tgUserId||!firstName||!apiAvailable)return;try{await fetch(API_BASE+'/api/update_name',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:tgUserId,first_name:firstName})});}catch(e){}}
+
+var apiHeaders={'Content-Type':'application/json'};
+async function fetchBalance(){if(!tgUserId)return;try{var res=await fetch(API_BASE+'/api/balance?user_id='+tgUserId,{headers:apiHeaders});var data=await res.json();if(data.success){userMainBalance=data.main_balance;userPlayBalance=data.play_balance;apiAvailable=true;updateBalanceDisplay();}}catch(e){apiAvailable=false;}}
+function updateBalanceDisplay(){
+  var mainStr=userMainBalance.toFixed(2);var playStr=userPlayBalance.toFixed(2);var totalStr=(userMainBalance+userPlayBalance).toFixed(2);
+  setTxt('s-main',mainStr);setTxt('s-play',playStr);
+  setTxt('p-main',mainStr);setTxt('p-play',playStr);setTxt('p-total',totalStr);
+  setTxt('tw-main',mainStr);setTxt('tw-play',playStr);setTxt('tw-total',totalStr);
+  setTxt('w-main',mainStr);setTxt('w-play',playStr);setTxt('w-total',totalStr);
+  setTxt('wl-main-sub',mainStr);setTxt('wl-play-sub',playStr);setTxt('wl-total-big',totalStr+' Br');
+  setTxt('p-bal','💰 '+totalStr+' Br');setTxt('wl-bal','💰 '+totalStr+' Br');
+  var noBalMsg=document.getElementById('no-balance-msg');
+  if(apiAvailable&&(userPlayBalance+userMainBalance)<currentStake)noBalMsg.style.display='block';else noBalMsg.style.display='none';
+}
+
+function updateUserInfo(){
+  if(!tgUser)return;
+  var name=(tgUser.first_name||'')+(tgUser.last_name?' '+tgUser.last_name:'');
+  var initial=name.charAt(0).toUpperCase()||'?';
+  var idStr='ID: '+tgUserId;
+  setTxt('p-name',name);setTxt('wl-name',name);setTxt('p-id',idStr);setTxt('wl-id',idStr);
+  var pImg=document.getElementById('p-avatar-img'),pLetter=document.getElementById('p-avatar-letter');
+  var wlImg=document.getElementById('wl-avatar-img'),wlLetter=document.getElementById('wl-avatar-letter');
+  if(tgUser.photo_url){pImg.src=tgUser.photo_url;pImg.style.display='block';pLetter.style.display='none';wlImg.src=tgUser.photo_url;wlImg.style.display='block';wlLetter.style.display='none';}
+  else{pLetter.textContent=initial;pImg.style.display='none';pLetter.style.display='flex';wlLetter.textContent=initial;wlImg.style.display='none';wlLetter.style.display='flex';}
+  var pUsername=document.getElementById('p-username'),wlUsername=document.getElementById('wl-username');
+  if(tgUser.username){pUsername.textContent='@'+tgUser.username;pUsername.style.display='block';wlUsername.textContent='@'+tgUser.username;wlUsername.style.display='block';}
+  else{pUsername.style.display='none';wlUsername.style.display='none';}
+}
+
+function navTo(tab){
+  ['home','profile','winners','wallet'].forEach(function(t){document.getElementById('nav-'+t).classList.toggle('active',t===tab);});
+  var map={home:'screen-stake',profile:'screen-profile',winners:'screen-winners',wallet:'screen-wallet'};
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  var s=document.getElementById(map[tab]);if(s)s.classList.add('active');
+  if(tab==='home'){showScreen('screen-stake');}
+  if(tab==='profile')loadProfile();
+  if(tab==='wallet')loadWallet();
+  if(tab==='winners'){
+    loadLeaderboard();
+    if(leaderboardInterval)clearInterval(leaderboardInterval);
+    leaderboardInterval=setInterval(loadLeaderboard,15000); // keep it live while open
+  }else if(leaderboardInterval){
+    clearInterval(leaderboardInterval);leaderboardInterval=null; // stop polling once you leave the tab
+  }
+}
+
+async function fetchProfileStats(){if(!tgUserId)return null;try{var res=await fetch(API_BASE+'/api/profile_stats?user_id='+tgUserId,{headers:apiHeaders});var data=await res.json();return data;}catch(e){return null;}}
+async function fetchGameHistory(){if(!tgUserId)return[];try{var res=await fetch(API_BASE+'/api/game_history?user_id='+tgUserId,{headers:apiHeaders});var data=await res.json();return data.history||[];}catch(e){return[];}}
+async function fetchTopWinners(period,category){try{var res=await fetch(API_BASE+'/api/top_winners?period='+period+'&category='+category,{headers:apiHeaders});var data=await res.json();return data.winners||[];}catch(e){return[];}}
+async function fetchMyRank(period,category){if(!tgUserId)return null;try{var res=await fetch(API_BASE+'/api/my_rank?user_id='+tgUserId+'&period='+period+'&category='+category,{headers:apiHeaders});return await res.json();}catch(e){return null;}}
+async function fetchTransactions(){if(!tgUserId)return[];try{var res=await fetch(API_BASE+'/api/transactions?user_id='+tgUserId,{headers:apiHeaders});var data=await res.json();return data.transactions||[];}catch(e){return[];}}
+
+async function loadProfile(){
+  updateUserInfo();updateBalanceDisplay();
+  var stats=await fetchProfileStats();
+  if(stats){
+    var main=stats.main_balance||0, play=stats.play_balance||0;
+    var total=(main+play);
+    setTxt('p-games-played', stats.games_played||0);
+    setTxt('p-games-won', stats.games_won||0);
+    setTxt('p-total-won', (stats.total_won||0)+' Br');
+    setTxt('p-invited', stats.invited||0);
+    var vipBadge=document.getElementById('p-vip-badge');if(vipBadge)vipBadge.style.display=stats.is_vip?'block':'none';
+  }
+  var history=await fetchGameHistory();
+  var rows=document.getElementById('p-history-rows');
+  if(!history.length){rows.innerHTML='<div class="empty-row">No games yet</div>';return;}
+  rows.innerHTML=history.map(function(h){
+    var gid=String(h.game_id||'—');if(gid.length>8)gid=gid.slice(0,8)+'…';
+    var st=h.status==='Won'?'Won':(h.status==='playing'?'Playing':'Completed');
+    var sc=h.status==='Won'?'green':(h.status==='playing'?'orange':'muted');
+    var rc=h.result&&h.result!=='-'?'green':'muted';
+    return '<div class="table-row"><span class="muted">'+gid+'</span><span>'+h.entry+' Br</span><span class="'+sc+'">'+st+'</span><span class="'+rc+'">'+(h.result||'-')+'</span></div>';
+  }).join('');
+}
+
+function setWeek(p){currentPeriod=p;document.getElementById('tab-week').classList.toggle('active',p==='week');document.getElementById('tab-month').classList.toggle('active',p==='month');loadLeaderboard();}
+function setCategory(c){currentCategory=c;['deposit','invite','games'].forEach(function(x){document.getElementById('tab-'+x).classList.toggle('active',x===c);});loadLeaderboard();}
+async function loadLeaderboard(){
+  updateBalanceDisplay();
+  var winners=await fetchTopWinners(currentPeriod,currentCategory);
+  var myRank=await fetchMyRank(currentPeriod,currentCategory);
+  var rankRows=document.getElementById('rank-rows');
+  if(!winners.length){rankRows.innerHTML='<div class="empty-row">No data yet</div>';}
+  else{rankRows.innerHTML=winners.slice(0,30).map(function(w,i){var nc=i===0?'rank-num gold':i===1?'rank-num silver':i===2?'rank-num bronze':'rank-num';return '<div class="rank-row"><span class="'+nc+'">'+(i+1)+'</span><span class="rank-name">'+w.name+'</span><span class="rank-val">'+w.value+'</span></div>';}).join('');}
+  if(myRank){setTxt('my-rank','#'+(myRank.rank||'—'));setTxt('my-rank-val',myRank.value||'—');}else{setTxt('my-rank','#—');setTxt('my-rank-val','—');}
+  var labels={deposit:'Times Deposited',invite:'Invitations',games:'Games Played'};
+  setTxt('my-rank-val-label',labels[currentCategory]||'Value');
+}
+
+async function loadWallet(){
+  updateUserInfo();updateBalanceDisplay();
+  var txs=await fetchTransactions();
+  var rows=document.getElementById('wl-tx-rows');
+  if(!txs.length){rows.innerHTML='<div class="empty-row">No transactions yet</div>';return;}
+  rows.innerHTML=txs.map(function(tx){var cls=(tx.type==='deposit'||tx.type==='bingo_win')?'green':'red';var icon=tx.type==='deposit'?'💳':tx.type==='bingo_win'?'🏆':tx.type==='withdraw'?'💸':'🎮';var date=tx.time?tx.time.split('T')[0]:'—';return '<div class="table-row"><span>'+icon+' '+tx.type+'</span><span class="'+cls+'">'+tx.amount+' Br</span><span class="green">Done</span><span class="muted">'+date+'</span></div>';}).join('');
+}
+
+// ============================ SOCKET.IO (MULTIPLAYER) ============================
+function initSocket(){
+  try{
+    socket=io(API_BASE,{transports:['websocket','polling'],reconnection:true,reconnectionDelay:1000,reconnectionAttempts:10,timeout:5000});
+
+    socket.on('connect',function(){
+      // re-sync into the game on (re)connect
+      if(currentGameId) joinGame(currentGameId);
+      else if(joinPending) joinGame(null);
+    });
+
+    socket.on('disconnect',function(){
+      // NO client-side number generation: the server is the only source of truth
+    });
+
+    // ---------- personal: joined a game ----------
+    socket.on('game_joined',function(data){
+      if(data.game_id!==currentGameId && currentGameId!==null && currentGameId!==data.game_id && joinedRoom){
+        // a stale game finished; take the fresh one
+      }
+      currentGameId=data.game_id;
+      gameStatus=data.status;
+      joinedRoom=true; joinPending=false;
+      roomPlayers=data.players||0; roomCards=data.cards||0;
+      prizePool=data.prize_pool||0; maxWinners=data.max_winners||1;
+      myCardLimit=data.cards_limit||2;
+      if(typeof data.main_balance==='number'){userMainBalance=data.main_balance;userPlayBalance=data.play_balance;apiAvailable=true;updateBalanceDisplay();}
+      setTxt('game-id-label',currentGameId);
+      setTxt('w-game-id',currentGameId);
+      setTxt('s-game-id',currentGameId);
+      applyRoster(data.roster, data.taken_labels);
+      updatePlayersDisplay();
+      // restore server-state (reconnect / observer)
+      game.called=new Set(data.called_numbers||[]);
+      game.current=data.current_number;
+      waitGame.called=new Set(data.called_numbers||[]);
+      waitGame.current=data.current_number;
+      game.callCount=(data.called_numbers||[]).length;
+      waitGame.callCount=(data.called_numbers||[]).length;
+      setTxt('s-call',game.callCount);setTxt('w-call-top',waitGame.callCount);
+      renderNumGrid();renderWaitGrid();
+      // rebuild my cards from server
+      var fresh=(data.my_cards||[]);
+      if(fresh.length>0&&myCards.length===0){
+        fresh.forEach(function(c){addServerCard(c);});
+      }
+      if(gameStatus==='waiting'){
+        timeLeft=data.time_left||35;
+        startTimer();
+        showSelectScreen();
+      }else{
+        stopTimer();
+        if(myCards.length>0){
+          showScreen('screen-game');
+          renderAllCards();
+          if(data.ready)showGetReady();
+        }else{
+          showWaitScreen();
+        }
+      }
+    });
+
+    socket.on('game_joined_error',function(data){
+      joinPending=false;
+      if(data.error==='room_not_found'){
+        // game finished or unknown -> join a fresh open room
+        joinGame(null);
+      }else if(data.error==='room_full'){
+        if(window.Telegram&&Telegram.WebApp)Telegram.WebApp.showAlert('This room is full. Joining another game...');
+        joinGame(null);
+      }
+    });
+
+    // ---------- room-wide ----------
+    socket.on('player_joined',function(data){
+      if(data.game_id!==currentGameId)return;
+      roomPlayers=data.players||0;roomCards=data.cards||0;
+      applyRoster(data.roster, data.taken_labels);
+      updatePlayersDisplay();
+    });
+
+    socket.on('players_update',function(data){
+      if(data.game_id!==currentGameId)return;
+      roomPlayers=data.player_count||0;roomCards=data.cards||0;
+      applyRoster(data.players, data.taken_labels);
+      updatePlayersDisplay();
+    });
+
+    socket.on('player_count_update',function(data){
+      if(data.game_id!==currentGameId)return;
+      roomPlayers=data.players||0;roomCards=data.cards||0;
+      updatePlayersDisplay();
+    });
+
+    socket.on('timer_update',function(data){
+      if(data.game_id!==currentGameId)return;
+      if(gameStatus!=='waiting')return;
+      timeLeft=data.time_left||0;
+      startTimer();
+    });
+
+    socket.on('game_started',function(data){
+      if(data.game_id!==currentGameId)return;
+      gameStatus='running';
+      stopTimer();
+      // CLEAR all called numbers and recent balls for the new game
+      game.called=new Set();game.current=null;game.recentBalls=[];game.callCount=0;
+      waitGame.called=new Set();waitGame.current=null;waitGame.recentBalls=[];waitGame.callCount=0;
+      setTxt('s-call','0');setTxt('w-call-top','0');
+      var rbEl=document.getElementById('recent-balls');if(rbEl)rbEl.innerHTML='';
+      var wrbEl=document.getElementById('wait-recent-balls');if(wrbEl)wrbEl.innerHTML='';
+      var mcEl=document.getElementById('mini-cards');if(mcEl)mcEl.innerHTML='';
+      setTxt('s-game-id',currentGameId);
+      roomPlayers=data.players||roomPlayers;
+      roomCards=data.cards||roomCards;
+      prizePool=data.prize_pool||prizePool;
+      maxWinners=data.max_winners||maxWinners;
+      applyRoster(data.roster, data.taken_labels);
+      updatePlayersDisplay();
+      if(myCards.length>0){
+        showScreen('screen-game');
+        renderNumGrid();renderAllCards();
+        if(data.ready)showGetReady();
+      }else{
+        showWaitScreen();
+        renderWaitGrid();renderWaitBalls();
+      }
+    });
+
+    socket.on('number_called',function(data){
+      if(data.game_id!==currentGameId)return;
+      if(!data.number)return;
+      processBall(data.number);
+    });
+
+    // ---------- personal: cards ----------
+    socket.on('card_update',function(data){
+      if(data.error){
+        if(data.error==='card_taken'){
+          if(window.Telegram&&Telegram.WebApp)Telegram.WebApp.showAlert('This card number is already taken. Pick another!');
+        }else if(data.error==='insufficient_balance'){
+          if(window.Telegram&&Telegram.WebApp)Telegram.WebApp.showAlert('⚠️ Insufficient balance! በቂ ሂሳብ የለም!');
+        }
+        return;
+      }
+      if(data.type==='assigned'){
+        if(typeof data.main_balance==='number'){userMainBalance=data.main_balance;userPlayBalance=data.play_balance;updateBalanceDisplay();}
+        addServerCard({card_id:data.card_id,label:data.label,numbers:data.numbers,marked:data.marked||[]});
+      }else if(data.type==='removed'){
+        if(typeof data.main_balance==='number'){userMainBalance=data.main_balance;userPlayBalance=data.play_balance;updateBalanceDisplay();}
+        removeServerCard(data.card_id);
+      }else if(data.type==='marked'){
+        // server confirmation of a manual mark (visual state already local)
+      }
+    });
+
+    socket.on('claim_rejected',function(data){
+      if(data.game_id!==currentGameId)return;
+      // not a valid BINGO yet — keep playing
+    });
+
+    socket.on('winner_found',function(data){
+      if(data.game_id!==currentGameId)return;
+      var w={name:data.winner_name||'—',card_id:data.card_id||'',card_label:data.card_label||'',user_id:data.user_id||0,prize:data.prize_per_winner||0};
+      var dup=winnersList.some(function(x){return x.card_id&&x.card_id===w.card_id;});
+      if(!dup)winnersList.push(w);
+      if(myCards.length===0)return; // observers see the final screen on game_finished
+    });
+
+    socket.on('game_finished',function(data){
+      if(data.game_id!==currentGameId)return;
+      stopTimer();
+      if(data.status==='cancelled'){
+        document.getElementById('cancelled-overlay').classList.add('show');
+        return;
+      }
+      winnersList=data.winners||winnersList||[];
+      var totalPrize=data.total_prize||0;
+      var per=data.prize_per_winner||0;
+      showWinnerScreen(winnersList,totalPrize,per);
+    });
+
+    // ---------- legacy admin events (kept for the existing admin panel) ----------
+    socket.on('game_paused',function(data){
+      if(data.room!==currentStake)return;
+    });
+
+    socket.on('game_cancelled',function(data){
+      if(data.room!==currentStake)return;
+      stopTimer();
+      document.getElementById('cancelled-overlay').classList.add('show');
+    });
+
+    socket.on('ball_called',function(data){
+      if(data.room!==currentStake)return;
+      if(data.number)processBall(data.number);
+    });
+
+  }catch(e){}
+}
+
+function showScreen(id){document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});document.getElementById(id).classList.add('active');}
+
+buildGrid();initTelegram();initSocket();fetchBalance().then(function(){updateUserInfo();showScreen('screen-stake');});
+
+</script>
+</body>
+</html>
